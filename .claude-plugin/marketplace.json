@@ -1,0 +1,15 @@
+{
+  "name": "hands-free-voice",
+  "description": "Hands-free voice for Claude Code",
+  "owner": {
+    "name": "Nicholas Yuan",
+    "url": "https://github.com/Nick-Yawn"
+  },
+  "plugins": [
+    {
+      "name": "hands-free-voice",
+      "source": "./plugin",
+      "description": "Talk to Claude Code hands-free: say \"operator\", talk, say \"over\"; it answers aloud and reads the context percent as the closer."
+    }
+  ]
+}

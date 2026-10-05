@@ -1,0 +1,46 @@
+{
+  "name": "hands-free-voice",
+  "displayName": "Hands-free voice",
+  "version": "0.1.0",
+  "description": "Talk to Claude Code hands-free: say \"operator\", talk, say \"over\"; it answers aloud and reads the context percent as the closer.",
+  "author": {
+    "name": "Nicholas Yuan",
+    "url": "https://github.com/Nick-Yawn"
+  },
+  "homepage": "https://github.com/Nick-Yawn/hands-free-voice#readme",
+  "repository": "https://github.com/Nick-Yawn/hands-free-voice",
+  "license": "MIT",
+  "keywords": ["voice", "speech", "hands-free", "accessibility", "speech-to-text", "text-to-speech"],
+  "documentationUrl": "https://github.com/Nick-Yawn/hands-free-voice#readme",
+  "supportUrl": "https://github.com/Nick-Yawn/hands-free-voice/issues",
+  "privacyPolicyUrl": "https://github.com/Nick-Yawn/hands-free-voice#what-leaves-your-machine",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "command": {
+      "type": "string",
+      "title": "Listener command",
+      "description": "The command that starts the audio half (the hands-free-voice Python package), split on spaces. --project is added.",
+      "default": "uvx hands-free-voice==0.1.0 listen"
+    },
+    "deepgram_api_key": {
+      "type": "string",
+      "title": "Deepgram API key",
+      "description": "For speech to text. Kept in secure storage and handed only to the listener, never to Claude's shell.",
+      "sensitive": true,
+      "required": false
+    },
+    "cartesia_api_key": {
+      "type": "string",
+      "title": "Cartesia API key",
+      "description": "For the spoken voice. Kept in secure storage and handed only to the listener, never to Claude's shell.",
+      "sensitive": true,
+      "required": false
+    },
+    "autostart": {
+      "type": "boolean",
+      "title": "Listen at session start",
+      "description": "Start listening when an interactive session starts, without /hands-free.",
+      "default": false
+    }
+  }
+}
