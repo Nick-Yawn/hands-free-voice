@@ -8,7 +8,7 @@ is over.
 
 ## Setup
 
-You need macOS, [uv](https://docs.astral.sh/uv/), headphones, a
+You need macOS, [uv](https://docs.astral.sh/uv/), a
 [Deepgram](https://deepgram.com) API key for speech to text, and a
 [Cartesia](https://cartesia.ai) API key for the voice. Claude Code asks
 for both keys when you enable the plugin and keeps them in your

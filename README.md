@@ -20,11 +20,6 @@ answering permission prompts by voice is not built yet.
 - macOS. Linux should work; Windows is not supported.
 - [uv](https://docs.astral.sh/uv/) (`brew install uv`). The mod runs
   the listener with `uvx`, which downloads it on first use.
-- Headphones. On open speakers the mic hears the assistant's voice.
-- A microphone. A wired headset or the built-in mic is most reliable.
-  Bluetooth headset mics work but are flakier: the headset switches
-  profiles whenever playback starts or stops, and a dead link tends to
-  deliver silence. The listener watches for that and rebuilds the input.
 - A [Deepgram](https://deepgram.com) API key (speech to text) and a
   [Cartesia](https://cartesia.ai) API key (the spoken voice).
 
@@ -177,14 +172,12 @@ nothing and holds no connection.
   `~/.config/hands-free-voice/.env`.
 - **"the listener did not start … is `uvx` on PATH?"** Install uv, then
   start a new Claude Code session so it sees the new PATH.
-- **It answers itself, or hears its own voice.** Use headphones.
 - **"another session is already listening".** One listener runs per
   machine; say "operator quit" or type `/hands-free off` in the other
   session.
 - **The status line says "mic silent, rebuilding" or "mic lost".** The
   input device stopped delivering audio, usually a Bluetooth headset
-  switching profiles. It recovers by itself; a wired or built-in mic
-  avoids it.
+  switching profiles. It recovers by itself.
 - **Anything else.** The listener's log is
   `~/.local/state/hands-free-voice/projects/<project>/listen.jsonl`.
   Say "operator feedback, ... over" to file an issue, or open one at
