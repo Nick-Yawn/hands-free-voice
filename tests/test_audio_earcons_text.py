@@ -3,9 +3,10 @@ import threading
 import time
 from array import array
 
-from cc_voice import earcons
-from cc_voice.audio import Mic, Playback, Resampler, scale_pcm, starved, watchdog_tick
-from cc_voice.text import Respeller, sentence_chunks
+from hands_free_voice import earcons
+from hands_free_voice.audio import Mic, Playback, Resampler, scale_pcm, starved, watchdog_tick
+from hands_free_voice.config import DEFAULTS
+from hands_free_voice.text import Respeller, sentence_chunks
 
 
 # -- earcons --------------------------------------------------------------
@@ -26,6 +27,24 @@ def test_every_cue_is_nonempty_even_pcm16_and_distinct():
     assert len(cues["command"]) < len(cues["capture"])
     assert len(cues["stop"]) == len(cues["resume"]) and cues["stop"] != cues["resume"]
     assert len(cues["closing"]) == len(cues["connected"]) and cues["closing"] != cues["connected"]
+
+
+def test_every_cue_plays_at_the_same_level():
+    peaks = {}
+    for key, pcm in earcons.get_set().items():
+        a = array("h")
+        a.frombytes(pcm)
+        peaks[key] = max(abs(x) for x in a)
+    assert max(peaks.values()) <= 1.15 * min(peaks.values()), peaks
+
+
+def test_still_working_is_one_note_twice():
+    # a falling figure means something ended; still working must not fall
+    a = array("h")
+    a.frombytes(earcons.get_set()["still_here"])
+    gap = int(earcons.SAMPLE_RATE * 0.07)
+    tap = (len(a) - gap) // 2
+    assert a[:tap] == a[tap + gap:] and not any(a[tap:tap + gap])
 
 
 # -- pcm and the watchdog ---------------------------------------------------
@@ -274,3 +293,7 @@ def test_respeller():
     assert r("x.py.bak stays") == "x.py.bak stays"
     assert Respeller()("untouched text") == "untouched text"
     assert Respeller()("") == ""
+
+
+def test_readme_is_said_as_two_words_by_default():
+    assert Respeller(DEFAULTS["respell"])("Rewrote the README.") == "Rewrote the read me."

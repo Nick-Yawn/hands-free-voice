@@ -3,7 +3,7 @@ running the voice loop without keys."""
 
 import asyncio
 
-from cc_voice.providers import STTCaps, TTSCaps
+from hands_free_voice.providers import STTCaps, TTSCaps
 
 
 class FakeSTTSession:

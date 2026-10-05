@@ -1,4 +1,4 @@
-# cc-voice: design, first draft
+# hands-free-voice: design, first draft
 
 A voice interface for Claude Code. You talk to your coding agent, and it talks back.
 
@@ -10,8 +10,8 @@ Status: a proposal for Nick to react to, not a spec. Written 2026-09-22 from the
 
 **Goals**
 
-- An ordinary Claude Code user (Nick's buddy first) installs one package, adds two API keys, runs `cc-voice` in a project folder, and codes by voice.
-- It drives the user's own installed `claude`. cc-voice never handles the Claude login.
+- An ordinary Claude Code user (Nick's buddy first) installs one package, adds two API keys, runs `hands-free-voice` in a project folder, and codes by voice.
+- It drives the user's own installed `claude`. hands-free-voice never handles the Claude login.
 - Two output channels. The full answer appears in the terminal, and a short spoken summary is played aloud.
 - Speech providers can be swapped. Deepgram is the default for speech to text, strongly recommended after live trials; Cartesia is the default (and so far only) text-to-speech provider, and remains an option for speech to text.
 - The Cortana loop's lessons ship as defaults, so nobody has to relearn them.
@@ -27,7 +27,7 @@ Status: a proposal for Nick to react to, not a spec. Written 2026-09-22 from the
 
 ## 2. What using it feels like
 
-**Start.** Run `cc-voice` in a project folder. It asks which session to resume (or starts a new one), plays a rising chime when the mic is up and the speech link has answered a probe, and shows a live transcript pane.
+**Start.** Run `hands-free-voice` in a project folder. It asks which session to resume (or starts a new one), plays a rising chime when the mic is up and the speech link has answered a probe, and shows a live transcript pane.
 
 **Open a turn.** Say the address word ("operator" by default), then talk. Anything said without it is ignored. **Learned in use:** in session one, OS dictation typed a stranger's "are you still at church?" into the terminal. A soft tick confirms that the turn opened.
 
@@ -40,7 +40,7 @@ The closer counts only at the **end** of what you say: the word, then about 400 
 
 **Confirmation.** A dispatch tick, then "Received." The rule is **earcons for machinery, voice for content.** **Learned in use:** with no capture signal, Nick said the same thing three times and got three answers.
 
-**While it works.** Tool calls are narrated at a lower volume ("Running the test suite."). Anything said *to* you plays at full volume. **Learned in use:** quieter narration reads as "talking to yourself". Volume is set by cc-voice itself, so this works with any voice provider. Narration speed was cut because it depends on the provider (Nick, 2026-09-22). Long turns open with a one-line spoken plan and add a line at each milestone. Those lines are what you interrupt against. After 15 quiet seconds, a soft still-here tone plays.
+**While it works.** Tool calls are narrated at a lower volume ("Running the test suite."). Anything said *to* you plays at full volume. **Learned in use:** quieter narration reads as "talking to yourself". Volume is set by hands-free-voice itself, so this works with any voice provider. Narration speed was cut because it depends on the provider (Nick, 2026-09-22). Long turns open with a one-line spoken plan and add a line at each milestone. Those lines are what you interrupt against. After 15 quiet seconds, a soft still-here tone plays.
 
 **The answer.** Two to four spoken sentences, with anything that needs your decision first. Then the closer, which is the context-window fill ("32 percent."). **Learned in use:** the percent became Nick's preferred closer. It tells you the turn is over and when to compact.
 
@@ -72,7 +72,7 @@ Every local command is acknowledged by ear the moment it is recognized (Nick, 20
 ```
    mic ──► Gate (local VAD) ──► [STT provider] ──► TurnMachine  (address, closer, commands)
                                                        │
-   ┌────────────── cc-voice host (asyncio) ──────────────────┐
+   ┌────────────── hands-free-voice host (asyncio) ──────────────────┐
    │  Seat: claude -p --input-format stream-json            │
    │        --output-format stream-json --verbose           │
    │        --replay-user-messages --resume <session>       │
@@ -89,7 +89,7 @@ Every local command is acknowledged by ear the moment it is recognized (Nick, 20
 - **One process per session.** It is spawned on the first turn and resumed from a session id pinned on disk. It closes after 30 idle minutes and respawns on the next turn. Each message goes to stdin the moment it's heard.
 - **An ordered channel.** Words go in and output comes out, in order, with no turn tracking. **Learned in use:** Cortana first matched each output record to the turn that caused it, and every hard bug of the first live nights lived in that matching.
 - **The Translator** is a pure function over stream records. It computes the context percent from the *last* usage iteration. **Learned in use:** the top-level usage adds up every round and once reported "108 percent". It skips subagent records (those with a `parent_tool_use_id`). **Learned in use:** without that, about 50 "Running a command." lines were spoken in a row.
-- **The SpokenLog** replaces the usual speech queue. Every line cc-voice says is appended to a log, and playback is a cursor through it. Pause, resume, replay-N and pause-while-talking all fall out of that.
+- **The SpokenLog** replaces the usual speech queue. Every line hands-free-voice says is appended to a log, and playback is a cursor through it. Pause, resume, replay-N and pause-while-talking all fall out of that.
 
 **Alternatives considered**
 
@@ -103,7 +103,7 @@ Every local command is acknowledged by ear the moment it is recognized (Nick, 20
 - **Hooks on the interactive TUI.** A Stop hook could speak each answer while the user keeps their normal terminal. That covers output only. Input is the hard half, and typing into a terminal is what failed in session one. It's a possible later "voice out, keyboard in" mode.
 - **One `claude -p` call per turn.** This was the original loop, and it's retired. Messages you stacked while Claude worked had to wait for the query to finish, then burst out together.
 
-**Compliance posture** (carried over from Cortana). cc-voice uses the official CLI through its documented headless interface, under the user's own login. It never reads credentials, scrapes a session or runs unattended. The idle close keeps a headless process from sitting open on the subscription.
+**Compliance posture** (carried over from Cortana). hands-free-voice uses the official CLI through its documented headless interface, under the user's own login. It never reads credentials, scrapes a session or runs unattended. The idle close keeps a headless process from sitting open on the subscription.
 
 ---
 
@@ -125,16 +125,16 @@ The rules, all learned in use:
 - **Blocks stand alone.** Never say "see your screen", because some users only listen.
 - **Long turns get a plan block before the first tool call and a progress block at each milestone.** Each mid-turn block must follow a plain sentence in the same breath. A block written straight after hidden reasoning ends up in the thinking channel and is never spoken; we measured this.
 - **Long work runs in the background, and the query then ends.** This covers subagents, CI waits and builds. A foreground wait holds the user's stacked messages until it returns. **Learned in use:** three foreground reviewers sat on Nick's "you still with me?" for 9 minutes. If a stacked message lands at a boundary, answer it right there.
-- **Never speak the address word or a control phrase.** cc-voice also scrubs them from speech.
+- **Never speak the address word or a control phrase.** hands-free-voice also scrubs them from speech.
 - **If dictation is ambiguous, ask one short question.**
 
 **Recommendation: pass the contract as a system-prompt file (`--append-system-prompt-file`) on every spawn.**
 
 - There's no install step.
 - It survives compaction. Cortana re-invokes a skill on every process start to get the same guarantee.
-- It touches only cc-voice sessions, so the user's terminal sessions are unchanged.
+- It touches only hands-free-voice sessions, so the user's terminal sessions are unchanged.
 
-A skill or an output style would both depend on Claude loading them, and an output style replaces more of the default prompt than we want. If cc-voice later grows commands or agents, it can ship them as a plugin via `--plugin-dir`, which also needs no install.
+A skill or an output style would both depend on Claude loading them, and an output style replaces more of the default prompt than we want. If hands-free-voice later grows commands or agents, it can ship them as a plugin via `--plugin-dir`, which also needs no install.
 
 ---
 
@@ -165,7 +165,7 @@ Word = (text, start_s, end_s, confidence)
 - **Partials** drive the live pane and let pause-while-talking react early.
 - **Word timings** make the closer rule exact: "over" counts only if silence follows the word's end. Without them, the core falls back to a timer. Measured 2026-09-22: Cartesia Ink-2 returns none over the manual endpoint (ink-whisper does); Deepgram Nova-3 returns them.
 - **Native turn events** power inferred mode. Without them, the core runs its own silence-based endpointer.
-- **Keyterms** boost the address and closer words. **Learned in use:** the address word became reliable only once it was boosted. `cc-voice setup` warns when an adapter can't boost.
+- **Keyterms** boost the address and closer words. **Learned in use:** the address word became reliable only once it was boosted. `hands-free-voice setup` warns when an adapter can't boost.
 - **Non-streaming engines** (local Whisper, upload APIs) get a local VAD that cuts speech into segments and emits Finals.
 
 **Text to speech**
@@ -193,12 +193,12 @@ class TTS(Protocol):
 
 ## 6. Packaging, install, config
 
-- **Python 3.11+ on PyPI, run with `uvx` or `pipx`.** The proven code is Python, and `sounddevice` (PortAudio) handles audio. The distribution name is `cc-voice` (§11).
-- **No Claude Code plugin in v1.** cc-voice spawns Claude and hands it the contract, so there's nothing to install on the Claude side.
-- **`cc-voice setup`.** It picks the mic and output device, checks each key with a live request, plays the voice, and runs a 30-second hearing test of the address and closer words.
-- **Config** lives in `~/.config/cc-voice/config.toml`: providers, voice, words, mode, volumes, respell map. Projects can override it with `.cc-voice.toml`.
-- **Keys** come from environment variables or the OS keychain, never the config file. **cc-voice removes its own keys from the child Claude's environment.** The agent runs shell commands and has no need to see them.
-- **A zero-key path on macOS** (local Whisper plus `say`) lets people try cc-voice before signing up for anything.
+- **Python 3.11+ on PyPI, run with `uvx` or `pipx`.** The proven code is Python, and `sounddevice` (PortAudio) handles audio. The distribution name is `hands-free-voice` (§11).
+- **No Claude Code plugin in v1.** hands-free-voice spawns Claude and hands it the contract, so there's nothing to install on the Claude side.
+- **`hands-free-voice setup`.** It picks the mic and output device, checks each key with a live request, plays the voice, and runs a 30-second hearing test of the address and closer words.
+- **Config** lives in `~/.config/hands-free-voice/config.toml`: providers, voice, words, mode, volumes, respell map. Projects can override it with `.hands-free-voice.toml`.
+- **Keys** come from environment variables or the OS keychain, never the config file. **hands-free-voice removes its own keys from the child Claude's environment.** The agent runs shell commands and has no need to see them.
+- **A zero-key path on macOS** (local Whisper plus `say`) lets people try hands-free-voice before signing up for anything.
 
 **Platforms.** macOS first, since that's where it has been lived in. Linux second, with Piper standing in for `say`. Windows and WSL are left out of v1 because of audio device pain.
 
@@ -210,7 +210,7 @@ class TTS(Protocol):
 
 **Ruled (Nick, 2026-09-22): build voice allow/deny in v1.** It has never been tried, so the live trial decides whether it works. Nick and his buddy both run `auto` mode, so for them it only has to cover the few prompts that mode still asks.
 
-**The proposal.** Keep the user's own permission mode, and send prompts to the host (`--permission-prompts host`). cc-voice receives them on the stream-json control channel; the exact message shape needs a probe, alongside interrupt.
+**The proposal.** Keep the user's own permission mode, and send prompts to the host (`--permission-prompts host`). hands-free-voice receives them on the stream-json control channel; the exact message shape needs a probe, alongside interrupt.
 
 1. **It reads the request back in plain words:** "Claude wants to delete the build folder. Allow?"
 2. **Only an address-framed "operator allow" or "operator deny" counts.**
@@ -221,7 +221,7 @@ class TTS(Protocol):
 **Other hazards**
 
 - **Other voices.** People, a TV or a call could say the address word. Framing lowers that risk but doesn't remove it, and the README says so. Speaker verification is out of v1.
-- **Two drivers on one session.** cc-voice locks the session id and refuses to resume a session another driver holds. **Learned in use:** two processes on one Cortana session both acted as the lead.
+- **Two drivers on one session.** hands-free-voice locks the session id and refuses to resume a session another driver holds. **Learned in use:** two processes on one Cortana session both acted as the lead.
 
 ---
 
@@ -245,7 +245,7 @@ class TTS(Protocol):
 Each of these is real in the private loop: still open there, or fixed late at some cost.
 
 1. **Orphaned Claude processes.** When Cortana's seat died, its `claude` child kept running under launchd as a second lead, twice. The fix was ruled but never built.
-   → *Day one:* the child runs in its own process group. Exit, signals and `atexit` all close stdin, then send SIGTERM and SIGKILL to the whole group. The lock file records the child pid, so on start cc-voice finds and offers to kill any stray process.
+   → *Day one:* the child runs in its own process group. Exit, signals and `atexit` all close stdin, then send SIGTERM and SIGKILL to the whole group. The lock file records the child pid, so on start hands-free-voice finds and offers to kill any stray process.
 2. **The idle-boundary fix set that was never built.** A turn cap refused messages. A `--resume` replayed a stale notification, and "No voice summary" was spoken. Foreground waits swallowed stacked messages. No parsed result log existed.
    → *Day one:* there's no cap. An empty result from a machine-started query (one whose result carries an `origin` field) is logged, never spoken. The background-and-end rule is in the contract. A private local log records every raw record and every heard, dropped, sent and spoken event.
 3. **Replayable speech.** Nick found "droppable narration" to be the wrong trade and wants pause, resume and "replay N".
@@ -261,7 +261,7 @@ Each of these is real in the private loop: still open there, or fixed late at so
 8. **People who pause while thinking.** Inferred end-of-turn cuts them off.
    → *Day one:* the closer word is the default mode, and it works in inferred mode too.
 9. **Self-hearing.** An open mic heard about 30 of the loop's own lines in one session.
-   → *Day one:* all speech is scrubbed. The address word is clipped to "op" and a bare "over" to "ov", so cc-voice's own audio can never open, close or command anything. Headphones are recommended. On speakers, a transcript that matches what was just played is dropped as echo. Real echo cancellation is v1.x.
+   → *Day one:* all speech is scrubbed. The address word is clipped to "op" and a bare "over" to "ov", so hands-free-voice's own audio can never open, close or command anything. Headphones are recommended. On speakers, a transcript that matches what was just played is dropped as echo. Real echo cancellation is v1.x.
 10. **Going deaf after playback.** Audio kept flowing, but no transcripts came back and no error was raised. **Learned in use** (2026-09-22): a Bluetooth headset's mic went silent for 43 s after a compaction, with frames still flowing.
     → *Day one:* the mic is opened at the device's own rate (re-queried at every start, resampled locally) and two watchdogs run. One rebuilds the mic when frames stop or stay digital silence. The other, in the gate, reconnects the STT session after eight seconds of voiced audio with no words, and rebuilds the mic if that happens twice. The log names the device and every firing.
 11. **Interrupting a running query.** This was never built, because the control message looked undocumented.
@@ -277,7 +277,7 @@ Each of these is real in the private loop: still open there, or fixed late at so
 
 1. The Seat driver and Translator with a text front end. Port Cortana's pure parsers and their tests.
 2. The TurnMachine, the Deepgram and Cartesia adapters, the SpokenLog, earcons and scrubbing.
-3. Voice permissions, the interrupt probe, `cc-voice setup`.
+3. Voice permissions, the interrupt probe, `hands-free-voice setup`.
 4. The local, OpenAI and ElevenLabs adapters.
 5. A 10-minute counted live trial with the buddy before tuning anything (Cortana's perceptual-loop rule).
 
@@ -285,7 +285,7 @@ Each of these is real in the private loop: still open there, or fixed late at so
 
 ## 11. Naming
 
-The name is **cc-voice** (Nick, 2026-09-22): "cc" for Claude Code, without putting "Claude" in the name, which likely clashes with Anthropic's brand guidelines. "for Claude Code" is fine as a description. The distribution, the import package (`cc_voice`), the console command, and the repo all carry it.
+The name is **hands-free-voice** (Nick, 2026-10-04). It was **cc-voice** (2026-09-22): "cc" for Claude Code, without putting "Claude" in the name, which likely clashes with Anthropic's brand guidelines. It was renamed when it became a Claude Code mod: sotto and the built-in `/voice` already put voice in Claude Code, and hands-free is what this one does that they don't. "for Claude Code" is fine as a description. The distribution, the import package (`hands_free_voice`), the console command, the repo and the mod all carry it.
 
 ---
 
@@ -299,7 +299,7 @@ The name is **cc-voice** (Nick, 2026-09-22): "cc" for Claude Code, without putti
   - The address word opens a turn, gated by local VAD. A push-to-talk hotkey is optional.
   - The address word is "operator", configurable.
   - Raw CLI now, behind a `Seat` interface.
-  - Copy the pure pieces from Cortana; Cortana depends on cc-voice later.
+  - Copy the pure pieces from Cortana; Cortana depends on hands-free-voice later.
   - MIT license.
   - The percent is the closer by default, with a tone as a setting.
-- **Name:** ruled — **cc-voice** (§11).
+- **Name:** ruled — **cc-voice**, renamed **hands-free-voice** on 2026-10-04 (§11).

@@ -16,16 +16,16 @@ import contextlib
 import sys
 import time
 
-from cc_voice.app import Host
-from cc_voice.audio import MIC_RATE, Mic, Playback, watchdog_tick
-from cc_voice.earcons import get_set
-from cc_voice.gate import Gate
-from cc_voice.providers import Final, Partial, SpeechStarted, TurnEnd
-from cc_voice.scrub import Scrubber
-from cc_voice.spoken_log import SpokenLog
-from cc_voice.text import Respeller
-from cc_voice.turns import TurnMachine
-from cc_voice.vad import make_vad
+from hands_free_voice.app import Host
+from hands_free_voice.audio import MIC_RATE, Mic, Playback, watchdog_tick
+from hands_free_voice.earcons import get_set
+from hands_free_voice.gate import Gate
+from hands_free_voice.providers import Final, Partial, SpeechStarted, TurnEnd
+from hands_free_voice.scrub import Scrubber
+from hands_free_voice.spoken_log import SpokenLog
+from hands_free_voice.text import Respeller
+from hands_free_voice.turns import TurnMachine
+from hands_free_voice.vad import make_vad
 
 MIC_CONSTRUCT_MAX_FAILURES = 5
 WATCHDOG_INTERVAL_S = 2.0
@@ -61,7 +61,7 @@ def make_speaker(tts, playback: Playback, scrubber: Scrubber, respell: Respeller
 
 class VoiceFront:
     def __init__(self, host: Host, cfg: dict, *, stt, tts, playback: Playback, mic: Mic,
-                 vad=None, clock=time.monotonic):
+                 vad=None, clock=time.monotonic, on_state=None):
         self.host = host
         self.cfg = cfg
         self.stt = stt
@@ -103,6 +103,12 @@ class VoiceFront:
             out=self._out, log=host.log.write, clock=clock)
         host.status_extra = self.status_extra
         host.on_still_here = lambda: self.cue("still_here")
+        self.on_state = on_state  # (state) whenever state() changes
+        self._shown: dict | None = None
+        self._mic_trouble: str | None = None
+        self._link_trouble: str | None = None
+        self._partial = ""  # the speech-to-text's words in progress, shown as said
+        host.spoken.on_change = self.publish
 
     async def _open_session(self):
         return await self.stt.open(rate=self.mic.rate,
@@ -115,6 +121,8 @@ class VoiceFront:
         self.playback.play(self.earcons[name], self.earcon_gain)
 
     def _link(self, up: bool) -> None:
+        self._link_trouble = None if up else "speech link down"
+        self.publish()
         if up == self.link_up:
             return
         self.link_up = up
@@ -130,6 +138,36 @@ class VoiceFront:
         """Ask the ears loop to stop and restart the input device."""
         self._rebuild_reason = reason
         self._rebuild.set()
+
+    # -- the status line ---------------------------------------------------------
+
+    def state(self) -> dict:
+        """What the ears and the voice are doing, for the mod's status line:
+        trouble, hearing (with the turn's last three words, words still
+        in progress included), paused, speaking or idle, first match wins.
+        Whether Claude is working is the mod's to know."""
+        trouble = self._mic_trouble or self._link_trouble
+        if trouble:
+            return {"state": "trouble", "detail": trouble}
+        words = self.machine.preview(self._partial) if self._partial else None
+        if words is None and self.machine.state != TurnMachine.IDLE:
+            words = self.machine.text()
+        if words is not None:
+            return {"state": "hearing", "words": " ".join(words.split()[-3:])}
+        spoken = self.host.spoken
+        if "user" in spoken.holds:
+            return {"state": "paused"}
+        if spoken.busy or (spoken.backlog and not spoken.paused):
+            return {"state": "speaking"}
+        return {"state": "idle"}
+
+    def publish(self) -> None:
+        if self.on_state is None:
+            return
+        state = self.state()
+        if state != self._shown:
+            self._shown = state
+            self.on_state(state)
 
     def status_extra(self) -> dict:
         t = self.mic.last_frame_t
@@ -172,6 +210,7 @@ class VoiceFront:
                 self._out(f"  [discarded: {act[1]}]")
                 self.host.log.write("abandoned", text=act[1])
         self._sync_settle()
+        self.publish()
 
     def _sync_settle(self) -> None:
         """Arm the closer's silence window while the machine is CLOSING
@@ -208,10 +247,13 @@ class VoiceFront:
         if isinstance(ev, Partial):
             if ev.text and closing:
                 self._cancel_settle()  # more words: the next final decides
+            self._partial = ev.text or ""
+            self.publish()
         elif isinstance(ev, SpeechStarted):
             if closing:
                 self._arm_settle(self.speech_hold_s)
         elif isinstance(ev, (Final, TurnEnd)):
+            self._partial = ""  # the final settles what the partials guessed
             text = (ev.text or "").strip()
             if text:
                 self.host.log.write("heard", text=text)
@@ -220,6 +262,7 @@ class VoiceFront:
                 # silence ended a segment with no words: whatever held the
                 # closer was noise, so the normal window runs from here
                 self._arm_settle(self.settle_s)
+            self.publish()
 
     # -- local commands ------------------------------------------------------------
 
@@ -315,12 +358,16 @@ class VoiceFront:
             if event == "down":
                 self._out("[ears: no mic frames; rebuilding the microphone]")
                 self.host.log.write("watchdog", event="mic_down")
+                self._mic_trouble = "mic lost, rebuilding"
             elif event == "silent":
                 self._out("[ears: the microphone delivers only silence; rebuilding it]")
                 self.host.log.write("watchdog", event="mic_silent")
+                self._mic_trouble = "mic silent, rebuilding"
             elif event == "up":
                 self._out("[ears: mic frames back]")
                 self.host.log.write("watchdog", event="mic_up")
+                self._mic_trouble = None
+            self.publish()
             if starved_now:
                 self.request_rebuild("no mic frames" if event != "silent" else "silent frames")
 
@@ -334,11 +381,12 @@ class VoiceFront:
     async def run(self) -> None:
         host = self.host
         host.start()
-        self._out(f"[cc-voice in {host.project_dir}]")
+        self._out(f"[hands-free-voice in {host.project_dir}]")
         self._out(f"[say '{self.address} ...' to open a turn and end it with"
                   f" '{self.closer}'; '{self.address} stop / resume / again / never mind /"
                   " status / cancel / compact / quit' are local; unaddressed speech"
                   " is ignored]")
+        self.publish()
         self._tasks = [
             asyncio.ensure_future(self.ears()),
             asyncio.ensure_future(self.watchdog()),
@@ -373,14 +421,15 @@ class VoiceFront:
 
 async def run_voice(host: Host, seat, cfg: dict, *, stt, tts,
                     playback: Playback | None = None, mic: Mic | None = None,
-                    vad=None) -> None:
+                    vad=None, on_state=None) -> None:
     """The providers arrive built (providers/registry.py): nothing in the
-    voice loop knows which vendor is listening or speaking."""
+    voice loop knows which vendor is listening or speaking. on_state, when
+    given, hears every change of VoiceFront.state()."""
     if playback is None:
         playback = Playback(enabled=True, device=cfg["audio"].get("output_device"),
                             rate=tts.sample_rate)
         if not playback.enabled:
-            print("cc-voice: no audio output device; run with --text", file=sys.stderr)
+            print("hands-free-voice: no audio output device; run with --text", file=sys.stderr)
             return
     if mic is None:
         mic = Mic(rate=MIC_RATE, device=cfg["audio"].get("input_device"))
@@ -389,5 +438,6 @@ async def run_voice(host: Host, seat, cfg: dict, *, stt, tts,
     speak = make_speaker(tts, playback, scrubber, respell, cfg["volumes"],
                          cfg["tts"].get("voice") or None)
     host.bind(seat, SpokenLog(speak))
-    front = VoiceFront(host, cfg, stt=stt, tts=tts, playback=playback, mic=mic, vad=vad)
+    front = VoiceFront(host, cfg, stt=stt, tts=tts, playback=playback, mic=mic, vad=vad,
+                       on_state=on_state)
     await front.run()

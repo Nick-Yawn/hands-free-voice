@@ -1,6 +1,6 @@
 """The TurnMachine: framing, the closer's silence window, commands."""
 
-from cc_voice.turns import TurnMachine, command_for
+from hands_free_voice.turns import COMMANDS, SHOWN_COMMANDS, TurnMachine, command_for
 
 
 class Clock:
@@ -243,3 +243,18 @@ def test_configured_words():
     assert m.state == m.CLOSING  # a command never discards a real turn
     assert m.settle() == [("dispatch", "do the thing,")]
     assert m.feed("operator hello over") == [("drop", "operator hello over")]
+
+
+def test_the_status_line_shows_one_phrase_for_every_command():
+    assert sorted(COMMANDS[p] for p in SHOWN_COMMANDS) == sorted(set(COMMANDS.values()))
+
+
+def test_a_partial_previews_the_turn_without_changing_it():
+    m = machine()
+    assert m.preview("so anyway") is None            # unaddressed
+    assert m.preview("Operator") == ""               # the address alone: a turn is starting
+    assert m.preview("Operator, check the") == "check the"
+    assert m.preview("Operator stop") is None        # a command, not a turn
+    m.feed("Operator, check the weather")
+    assert m.preview("in Houston") == "check the weather in Houston"
+    assert m.text() == "check the weather"

@@ -3,11 +3,11 @@ claude child, and a recording voice. No audio, no network, no claude."""
 
 import asyncio
 
-from cc_voice.app import Host, compose_status, parse_text_command, run_text
-from cc_voice.config import DEFAULTS, deep_merge
-from cc_voice.seat import Seat
-from cc_voice.spoken_log import SpokenLog
-from cc_voice.state import EventLog, LockFile, SessionPin
+from hands_free_voice.app import Host, compose_status, parse_text_command, run_text
+from hands_free_voice.config import DEFAULTS, deep_merge
+from hands_free_voice.seat import Seat
+from hands_free_voice.spoken_log import SpokenLog
+from hands_free_voice.state import EventLog, LockFile, SessionPin
 from tests.fakes import SID, ScriptedClaude, assistant_text, assistant_tool, result, until
 
 

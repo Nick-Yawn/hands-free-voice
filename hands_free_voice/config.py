@@ -1,5 +1,5 @@
-"""Configuration: defaults, ~/.config/cc-voice/config.toml, a project's
-.cc-voice.toml overlay, and the API keys from the environment.
+"""Configuration: defaults, ~/.config/hands-free-voice/config.toml, a project's
+.hands-free-voice.toml overlay, and the API keys from the environment.
 
 Keys never live in the config file. Each provider names the environment
 variable it needs (providers/registry.py); every key any provider could
@@ -12,17 +12,20 @@ import os
 import tomllib
 from pathlib import Path
 
-from cc_voice.providers.registry import KEY_ENV_VARS
+from hands_free_voice.providers.registry import KEY_ENV_VARS
 
-USER_CONFIG_PATH = Path("~/.config/cc-voice/config.toml")
-PROJECT_CONFIG_NAME = ".cc-voice.toml"
+USER_CONFIG_PATH = Path("~/.config/hands-free-voice/config.toml")
+PROJECT_CONFIG_NAME = ".hands-free-voice.toml"
 
 DEFAULTS: dict = {
     "stt": {
         "provider": "deepgram",   # or "cartesia" (needs CARTESIA_API_KEY)
         "language": "en",
         "cartesia": {"model": "ink-2"},
-        "deepgram": {"model": "nova-3"},
+        # training_opt_out: keep this audio out of Deepgram's model training
+        # (its Model Improvement Program); Deepgram keeps it only as long as
+        # a request takes
+        "deepgram": {"model": "nova-3", "training_opt_out": True},
     },
     "tts": {
         "provider": "cartesia",
@@ -51,8 +54,8 @@ DEFAULTS: dict = {
     },
     "volumes": {
         "speech": 1.0,
-        "narration": 0.5,
-        "earcons": 0.6,
+        "narration": 1.0,
+        "earcons": 1.0,
     },
     "seat": {
         "claude": "claude",       # the binary to drive
@@ -65,7 +68,9 @@ DEFAULTS: dict = {
         "input_device": None,
         "output_device": None,
     },
-    "respell": {},                # spoken form for jargon, e.g. dev = "devv"
+    "respell": {                  # spoken form for jargon, e.g. dev = "devv"
+        "readme": "read me",      # not spelled out letter by letter
+    },
 }
 
 

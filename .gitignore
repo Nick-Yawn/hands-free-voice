@@ -5,4 +5,6 @@ __pycache__/
 dist/
 build/
 .pytest_cache/
-.cc-voice.toml
+.hands-free-voice.toml
+.DS_Store
+plugin/.claude-plugin/types/

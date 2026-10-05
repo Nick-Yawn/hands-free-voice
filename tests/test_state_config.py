@@ -3,9 +3,9 @@ import os
 
 import pytest
 
-from cc_voice import config as cfgmod
-from cc_voice.config import child_env, deep_merge, load_config
-from cc_voice.providers.registry import (
+from hands_free_voice import config as cfgmod
+from hands_free_voice.config import child_env, deep_merge, load_config
+from hands_free_voice.providers.registry import (
     ConfigError,
     KEY_ENV_VARS,
     make_stt,
@@ -13,8 +13,8 @@ from cc_voice.providers.registry import (
     missing_keys,
     required_key_envs,
 )
-from cc_voice.contract import contract_text, write_contract
-from cc_voice.state import (
+from hands_free_voice.contract import contract_text, write_contract
+from hands_free_voice.state import (
     EventLog,
     LockFile,
     SessionPin,
@@ -29,7 +29,7 @@ def test_defaults_and_overlays(tmp_path):
     user.write_text('[words]\naddress = "computer"\n[volumes]\nnarration = 0.3\n')
     proj = tmp_path / "proj"
     proj.mkdir()
-    (proj / ".cc-voice.toml").write_text('[words]\ncloser = "send"\n[tts]\nvoice = "v1"\n')
+    (proj / ".hands-free-voice.toml").write_text('[words]\ncloser = "send"\n[tts]\nvoice = "v1"\n')
     cfg = load_config(proj, user_path=user)
     assert cfg["words"] == {"address": "computer", "closer": "send",
                             "filler_before_address": False}

@@ -2,7 +2,8 @@
 voice for content.
 
 Pure PCM16 mono synthesis, no audio deps. A marimba-ish family:
-fundamental plus a quiet octave overtone, quick percussive decay.
+fundamental plus a quiet octave overtone, quick percussive decay, every
+cue at the same level.
 
   capture      a soft tick: the address word opened a turn
   dispatch     a rising two-note run: the turn is on its way
@@ -14,7 +15,8 @@ fundamental plus a quiet octave overtone, quick percussive decay.
   resume       the same two notes rising, E5 to G5: playback goes on
                (stop and resume share their notes and differ by
                direction, so the ear tells them apart at once)
-  still_here   a soft low blip: Claude is still working
+  still_here   a double tap on one note, G4 twice: Claude is still
+               working (level, so it never reads as an ending)
   connected    a triple rising triad: mic and link are up
   closing      the same triad falling: the mirror of connected, played
                to completion before the process exits
@@ -48,18 +50,6 @@ def _gap(dur_s: float, sample_rate: int = SAMPLE_RATE) -> array:
     return array("h", [0] * int(sample_rate * dur_s))
 
 
-def _blip(sample_rate: int = SAMPLE_RATE) -> array:
-    """A soft, low two-note blip: still here, still thinking. Gentler
-    and lower than the others; ambient, not attention-seeking."""
-    out = array("h")
-    for freq, dur in ((392.0, 0.09), (329.6, 0.11)):
-        n = int(sample_rate * dur)
-        for i in range(n):
-            env = min(1.0, i / 200, (n - i) / 400)
-            out.append(int(3500 * env * math.sin(2 * math.pi * freq * i / sample_rate)))
-    return out
-
-
 def _bytes(*parts: array) -> bytes:
     out = array("h")
     for part in parts:
@@ -79,7 +69,8 @@ def get_set(sample_rate: int = SAMPLE_RATE) -> dict[str, bytes]:
                        _note(659.25, 0.09, sample_rate)),                        # G5 -> E5
         "resume": _bytes(_note(659.25, 0.07, sample_rate), _gap(0.02, sample_rate),
                          _note(783.99, 0.09, sample_rate)),                      # E5 -> G5
-        "still_here": _bytes(_blip(sample_rate)),
+        "still_here": _bytes(_note(392.00, 0.09, sample_rate), _gap(0.07, sample_rate),
+                             _note(392.00, 0.09, sample_rate)),               # G4 G4
         "connected": _bytes(_note(523.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(659.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(783.99, 0.18, sample_rate)),                   # C5 E5 G5

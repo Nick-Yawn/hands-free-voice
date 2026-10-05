@@ -61,6 +61,9 @@ COMMANDS = {
     "end session": "quit",
 }
 
+# One phrase per command, in the order the mod's status line lists them.
+SHOWN_COMMANDS = ("stop", "resume", "again", "never mind", "status", "compact", "quit")
+
 
 def _norm(word: str) -> str:
     return re.sub(r"[^a-z0-9]", "", word.lower())
@@ -106,6 +109,21 @@ class TurnMachine:
         if self._ends_with_closer():
             return " ".join(self._words[:-n]).strip()
         return " ".join(self._words).strip()
+
+    def preview(self, partial: str) -> str | None:
+        """The turn's words as they would read with an in-progress partial
+        added, for showing words as they are said; None when the partial
+        neither continues a turn nor opens one (unaddressed speech, a
+        command). Changes nothing."""
+        if self.state != self.IDLE:
+            return " ".join([self.text(), partial.strip()]).strip()
+        pairs = [(w, n) for w in partial.split() if (n := _norm(w))]
+        frame = self._frame_index([n for _, n in pairs])
+        if frame is None:
+            return None
+        if command_for(" ".join(n for _, n in pairs[frame + 1:])):
+            return None
+        return " ".join(w for w, _ in pairs[frame + 1:])
 
     def _ends_with_closer(self) -> bool:
         n = len(self.closer)

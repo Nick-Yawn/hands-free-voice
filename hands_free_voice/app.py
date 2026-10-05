@@ -10,9 +10,9 @@ import asyncio
 import sys
 import time
 
-from cc_voice.seat import Seat
-from cc_voice.spoken_log import SpokenLog
-from cc_voice.state import EventLog
+from hands_free_voice.seat import Seat
+from hands_free_voice.spoken_log import SpokenLog
+from hands_free_voice.state import EventLog
 
 RECEIVED = "Received."
 COMPACTING = "Compacting."
@@ -86,7 +86,7 @@ class Host:
     # -- output ------------------------------------------------------------
 
     def say_local(self, text: str) -> None:
-        """A line cc-voice itself composes (status, acks)."""
+        """A line hands-free-voice itself composes (status, acks)."""
         self._out(f"  · {text}")
         self.spoken.append(text, "speech", kind="local", role="status")
 
@@ -271,7 +271,7 @@ class Host:
 
 # -- the text front end ------------------------------------------------------
 
-TEXT_HELP = """[cc-voice --text: type a message and press Enter to send it.
+TEXT_HELP = """[hands-free-voice --text: type a message and press Enter to send it.
  Local commands: :status  :again  :back N  :stop  :resume  :compact  :quit]"""
 
 
@@ -348,7 +348,7 @@ def stdin_lines() -> asyncio.Queue:
 async def run_text(host: Host, lines: asyncio.Queue | None = None,
                    prompt: bool = True) -> None:
     lines = lines if lines is not None else stdin_lines()
-    host._out(f"[cc-voice in {host.project_dir}]")
+    host._out(f"[hands-free-voice in {host.project_dir}]")
     host._out(TEXT_HELP)
     host.start()
     ticker = asyncio.ensure_future(host.still_here_ticker(

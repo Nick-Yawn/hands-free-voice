@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cc-voice"
+name = "hands-free-voice"
 version = "0.1.0"
-description = "A voice interface for Claude Code: talk to your coding agent, hear it answer."
+description = "Hands-free voice for Claude Code: the audio half of the hands-free-voice mod, and a standalone voice front end."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
@@ -28,14 +28,21 @@ dependencies = [
     "webrtcvad-wheels>=2.0.14",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Nick-Yawn/hands-free-voice"
+Issues = "https://github.com/Nick-Yawn/hands-free-voice/issues"
+
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 
 [project.scripts]
-cc-voice = "cc_voice.cli:main"
+hands-free-voice = "hands_free_voice.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["cc_voice"]
+packages = ["hands_free_voice"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/hands_free_voice", "/tests", "/plugin", "/README.md", "/LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

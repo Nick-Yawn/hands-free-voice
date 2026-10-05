@@ -17,7 +17,7 @@ import asyncio
 import json
 import urllib.parse
 
-from cc_voice.providers import (
+from hands_free_voice.providers import (
     Error,
     Final,
     Partial,
@@ -31,7 +31,8 @@ DEFAULT_MODEL = "nova-3"
 CLOSE_FLUSH_S = 2.0  # how long close() waits for the server's flush
 
 
-def listen_params(model: str, rate: int, keyterms=(), language: str = "en") -> list[tuple]:
+def listen_params(model: str, rate: int, keyterms=(), language: str = "en",
+                  training_opt_out: bool = True) -> list[tuple]:
     params = [
         ("model", model),
         ("encoding", "linear16"),
@@ -44,11 +45,15 @@ def listen_params(model: str, rate: int, keyterms=(), language: str = "en") -> l
         ("vad_events", "true"),
     ]
     params += [("keyterm", k) for k in keyterms if k]
+    if training_opt_out:
+        params.append(("mip_opt_out", "true"))  # out of the Model Improvement Program
     return params
 
 
-def listen_url(model: str, rate: int, keyterms=(), language: str = "en") -> str:
-    return f"{LISTEN_URL}?{urllib.parse.urlencode(listen_params(model, rate, keyterms, language))}"
+def listen_url(model: str, rate: int, keyterms=(), language: str = "en",
+               training_opt_out: bool = True) -> str:
+    params = listen_params(model, rate, keyterms, language, training_opt_out)
+    return f"{LISTEN_URL}?{urllib.parse.urlencode(params)}"
 
 
 def parse_message(msg: dict):
@@ -135,9 +140,11 @@ class DeepgramSTT:
                    keyterms=True, streaming=True)
     default_model = DEFAULT_MODEL
 
-    def __init__(self, api_key: str, model: str = DEFAULT_MODEL, connect=None):
+    def __init__(self, api_key: str, model: str = DEFAULT_MODEL, connect=None,
+                 training_opt_out: bool = True):
         self.api_key = api_key
         self.model = model
+        self.training_opt_out = training_opt_out
         self._connect = connect or self._websocket
 
     @staticmethod
@@ -146,6 +153,6 @@ class DeepgramSTT:
         return await websockets.connect(url, additional_headers=headers)
 
     async def open(self, rate: int = 16000, keyterms=(), language: str = "en") -> DeepgramSession:
-        url = listen_url(self.model, rate, keyterms, language)
+        url = listen_url(self.model, rate, keyterms, language, self.training_opt_out)
         ws = await self._connect(url, {"Authorization": f"Token {self.api_key}"})
         return DeepgramSession(ws)

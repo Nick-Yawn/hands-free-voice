@@ -4,7 +4,7 @@ Text to speech, wss://api.cartesia.ai/tts/websocket: sentence-sized
 sends under one context (continue: true, then an empty transcript with
 continue: false to flush), base64 PCM chunks back until `done`. One
 websocket per utterance; the context carries prosody across the
-sentence seams. There is no speed field: cc-voice has no speed control.
+sentence seams. There is no speed field: hands-free-voice has no speed control.
 
 Speech to text, wss://api.cartesia.ai/stt/websocket (the manual
 endpoint): raw PCM16 binary frames in, `transcript` JSON out with
@@ -36,8 +36,8 @@ import json
 import urllib.parse
 import uuid
 
-from cc_voice.providers import Error, Final, Partial, STTCaps, TTSCaps, Word
-from cc_voice.text import sentence_chunks
+from hands_free_voice.providers import Error, Final, Partial, STTCaps, TTSCaps, Word
+from hands_free_voice.text import sentence_chunks
 
 API_VERSION = "2026-08-14"
 

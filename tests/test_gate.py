@@ -3,9 +3,9 @@ hangover and the turn's hold, reconnects, the deaf watchdog."""
 
 import asyncio
 
-from cc_voice.gate import Gate
-from cc_voice.providers import Final, Partial, SpeechStarted
-from cc_voice.providers.fake import FakeVAD
+from hands_free_voice.gate import Gate
+from hands_free_voice.providers import Final, Partial, SpeechStarted
+from hands_free_voice.providers.fake import FakeVAD
 
 VOICED = b"\x01\x00" * 640   # one 40 ms mic chunk of "speech" (two VAD frames)
 SILENT = bytes(1280)

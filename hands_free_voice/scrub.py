@@ -1,4 +1,4 @@
-"""Scrubbing: nothing cc-voice speaks may carry the address or closer word.
+"""Scrubbing: nothing hands-free-voice speaks may carry the address or closer word.
 
 An open mic hears the machine's own playback (about 30 self-heard lines in
 one early session), and the address word in that audio could open a turn,

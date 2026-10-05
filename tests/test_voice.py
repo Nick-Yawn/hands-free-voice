@@ -4,15 +4,15 @@ are observable."""
 
 import asyncio
 
-from cc_voice import earcons
-from cc_voice.app import Host
-from cc_voice.audio import Playback
-from cc_voice.config import DEFAULTS, deep_merge
-from cc_voice.providers import Error, Final, Partial, SpeechStarted
-from cc_voice.providers.fake import FakeSTT, FakeTTS, FakeVAD
-from cc_voice.seat import Seat
-from cc_voice.state import EventLog, LockFile, SessionPin
-from cc_voice.voice import run_voice
+from hands_free_voice import earcons
+from hands_free_voice.app import Host
+from hands_free_voice.audio import Playback
+from hands_free_voice.config import DEFAULTS, deep_merge
+from hands_free_voice.providers import Error, Final, Partial, SpeechStarted
+from hands_free_voice.providers.fake import FakeSTT, FakeTTS, FakeVAD
+from hands_free_voice.seat import Seat
+from hands_free_voice.state import EventLog, LockFile, SessionPin
+from hands_free_voice.voice import run_voice
 from tests.fakes import ScriptedClaude, assistant_tool, result, until
 
 
@@ -83,7 +83,7 @@ def cue_names(stream: FakeOutStream) -> list[str]:
     return out
 
 
-def build(tmp_path, answers, overlay=None, tts=None):
+def build(tmp_path, answers, overlay=None, tts=None, states=None):
     # tts.voice stays "" here: these scenarios are about turns and
     # commands, not which voice id gets threaded through, and pinning it
     # keeps their `(text, None)` assertions independent of DEFAULTS'
@@ -108,8 +108,9 @@ def build(tmp_path, answers, overlay=None, tts=None):
     stream = FakeOutStream()
     playback = Playback(enabled=True, open_stream=lambda: stream)
     mic = FakeMic()
-    run = asyncio.ensure_future(run_voice(host, seat, cfg, stt=stt, tts=tts,
-                                          playback=playback, mic=mic, vad=FakeVAD()))
+    run = asyncio.ensure_future(run_voice(
+        host, seat, cfg, stt=stt, tts=tts, playback=playback, mic=mic, vad=FakeVAD(),
+        on_state=None if states is None else states.append))
     mic.talker = asyncio.ensure_future(keep_talking(mic, run))
     return host, seat, claude, stt, tts, stream, mic, out, run
 
@@ -133,7 +134,7 @@ def test_address_talk_closer_round_trip(tmp_path):
         assert not host.spoken.paused
         await until(lambda: any(t == "10 percent." for t, _ in tts.spoken))
         # scrubbed at the chokepoint: the address word never reaches the voice
-        assert [t for t, _ in tts.spoken] == ["Received.", "Reading README.md.",
+        assert [t for t, _ in tts.spoken] == ["Received.", "Reading read me.md.",
                                               "Hi there, op.", "10 percent."]
         assert any("ignored: Hi, are you still at church?" in line for line in out)
         assert "you ▸ say hi" in out and "→ sent: say hi" in out
@@ -262,6 +263,46 @@ def test_stt_link_drop_reconnects_with_the_cue_pair(tmp_path):
         assert cue_names(stream).count("disconnected") == 1
         assert mic.started == 1  # a link drop never touches the microphone
         assert stt.sessions[2].chunks  # audio flows into the new session
+        stt.queue.put_nowait(Final("Operator quit"))
+        await run
+
+    asyncio.run(scenario())
+
+
+def test_the_state_follows_hearing_speaking_a_stop_and_a_dropped_link(tmp_path):
+    answers = {"tell me a long story": [result("⟦voice⟧A long spoken answer that keeps going.⟦/voice⟧",
+                                               used=100, window=1000)]}
+    tts = FakeTTS(chunk_delay_s=0.02, chunks=50)
+
+    async def scenario():
+        states = []
+        host, seat, claude, stt, tts_, stream, mic, out, run = build(
+            tmp_path, answers, tts=tts, states=states)
+        await until(lambda: len(stt.sessions) == 2 and stt.sessions[0].closed)
+        assert states == [{"state": "idle"}]
+        stt.queue.put_nowait(Partial("Operator"))
+        await until(lambda: states[-1] == {"state": "hearing", "words": ""})
+        # words show as they are said: partials first, then the final
+        stt.queue.put_nowait(Partial("Operator, tell me"))
+        await until(lambda: states[-1] == {"state": "hearing", "words": "tell me"})
+        stt.queue.put_nowait(Partial("so anyway"))  # unaddressed: nothing shows
+        await until(lambda: states[-1] == {"state": "idle"})
+        # hearing carries the turn's last three words, the closer included
+        stt.queue.put_nowait(Final("Operator, tell me a long story"))
+        await until(lambda: states[-1] == {"state": "hearing", "words": "a long story"})
+        stt.queue.put_nowait(Final("over"))
+        await until(lambda: any(t.startswith("A long spoken") for t, _ in tts.spoken))
+        assert {"state": "hearing", "words": "long story over"} in states
+        assert states[-1] == {"state": "speaking"}
+        stt.queue.put_nowait(Final("Operator stop"))
+        await until(lambda: states[-1] == {"state": "paused"})
+        stt.queue.put_nowait(Final("Operator resume"))
+        await until(lambda: states[-1] == {"state": "speaking"})
+        await until(lambda: ("10 percent.", None) in tts.spoken and states[-1] == {"state": "idle"})
+        stt.queue.put_nowait(Error("link: server closed 1011"))
+        await until(lambda: {"state": "trouble", "detail": "speech link down"} in states)
+        await until(lambda: states[-1] == {"state": "idle"})
+        assert all(a != b for a, b in zip(states, states[1:]))  # changes only
         stt.queue.put_nowait(Final("Operator quit"))
         await run
 

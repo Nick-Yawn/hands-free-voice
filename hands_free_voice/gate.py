@@ -34,8 +34,8 @@ import collections
 import contextlib
 import time
 
-from cc_voice.providers import Error, Final, Partial, SpeechStarted
-from cc_voice.vad import Framer
+from hands_free_voice.providers import Error, Final, Partial, SpeechStarted
+from hands_free_voice.vad import Framer
 
 DEFAULT_PRE_ROLL_S = 0.5
 DEFAULT_HANGOVER_S = 10.0

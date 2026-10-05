@@ -22,23 +22,24 @@ class ProviderSpec:
 
 
 def _cartesia_stt(cfg: dict, key: str):
-    from cc_voice.providers.cartesia import CartesiaSTT
+    from hands_free_voice.providers.cartesia import CartesiaSTT
     own = cfg["stt"].get("cartesia") or {}
     return CartesiaSTT(key, model=own.get("model") or CartesiaSTT.default_model)
 
 
 def _deepgram_stt(cfg: dict, key: str):
-    from cc_voice.providers.deepgram import DeepgramSTT
+    from hands_free_voice.providers.deepgram import DeepgramSTT
     own = cfg["stt"].get("deepgram") or {}
-    return DeepgramSTT(key, model=own.get("model") or DeepgramSTT.default_model)
+    return DeepgramSTT(key, model=own.get("model") or DeepgramSTT.default_model,
+                       training_opt_out=bool(own.get("training_opt_out", True)))
 
 
 def _cartesia_tts(cfg: dict, key: str):
-    from cc_voice.providers.cartesia import CartesiaTTS
+    from hands_free_voice.providers.cartesia import CartesiaTTS
     voice = cfg["tts"].get("voice") or ""
     if not voice:
         raise ConfigError("set a Cartesia voice id: [tts] voice = \"...\" in"
-                          " ~/.config/cc-voice/config.toml, or --voice ID")
+                          " ~/.config/hands-free-voice/config.toml, or --voice ID")
     return CartesiaTTS(key, voice, model=cfg["tts"].get("model") or CartesiaTTS.default_model)
 
 

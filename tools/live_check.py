@@ -16,7 +16,7 @@ open to the first transcript, and how the session closed.
     CARTESIA_API_KEY=... python tools/live_check.py --stt cartesia
 
 Keys come from the environment only and are never printed. The voice id
-comes from --voice or ~/.config/cc-voice/config.toml.
+comes from --voice or ~/.config/hands-free-voice/config.toml.
 """
 
 import argparse
@@ -29,13 +29,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cc_voice.config import deep_merge, DEFAULTS  # noqa: E402
-from cc_voice.gate import Gate  # noqa: E402
-from cc_voice.providers import Final, Partial, SpeechStarted  # noqa: E402
-from cc_voice.providers.cartesia import CartesiaTTS  # noqa: E402
-from cc_voice.providers.registry import make_stt  # noqa: E402
-from cc_voice.turns import TurnMachine  # noqa: E402
-from cc_voice.vad import make_vad  # noqa: E402
+from hands_free_voice.config import deep_merge, DEFAULTS  # noqa: E402
+from hands_free_voice.gate import Gate  # noqa: E402
+from hands_free_voice.providers import Final, Partial, SpeechStarted  # noqa: E402
+from hands_free_voice.providers.cartesia import CartesiaTTS  # noqa: E402
+from hands_free_voice.providers.registry import make_stt  # noqa: E402
+from hands_free_voice.turns import TurnMachine  # noqa: E402
+from hands_free_voice.vad import make_vad  # noqa: E402
 
 RATE = 16000
 CHUNK_S = 0.04
@@ -56,7 +56,7 @@ async def main(args) -> int:
     cfg = deep_merge(DEFAULTS, {"stt": {"provider": args.stt}})
     voice = args.voice
     if not voice:
-        user = Path("~/.config/cc-voice/config.toml").expanduser()
+        user = Path("~/.config/hands-free-voice/config.toml").expanduser()
         if user.exists():
             with open(user, "rb") as f:
                 voice = (tomllib.load(f).get("tts") or {}).get("voice")

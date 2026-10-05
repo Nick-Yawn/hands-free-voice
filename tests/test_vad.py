@@ -4,7 +4,7 @@ import math
 import random
 from array import array
 
-from cc_voice.vad import FLOOR_RMS, Framer, WebRtcVAD, is_digital_silence, make_vad, rms
+from hands_free_voice.vad import FLOOR_RMS, Framer, WebRtcVAD, is_digital_silence, make_vad, rms
 
 RATE = 16000
 N = 320  # a 20 ms frame

@@ -7,9 +7,9 @@ import signal
 
 import pytest
 
-import cc_voice.seat as seat_mod
-from cc_voice.seat import Seat, SEAT_FLAGS, build_seat_command, user_message_line
-from cc_voice.state import LockFile, SessionPin
+import hands_free_voice.seat as seat_mod
+from hands_free_voice.seat import Seat, SEAT_FLAGS, build_seat_command, user_message_line
+from hands_free_voice.state import LockFile, SessionPin
 
 SID = "db54779a-0000-4000-8000-000000000000"
 

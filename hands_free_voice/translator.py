@@ -34,7 +34,7 @@ import json
 import re
 import time
 
-from cc_voice.narrate import narrate_tool
+from hands_free_voice.narrate import narrate_tool
 
 VOICE_RE = re.compile(r"⟦voice⟧\s*(.*?)\s*⟦/voice⟧", re.DOTALL)
 
@@ -44,7 +44,7 @@ COMPACTING = "Compacting."
 COMPACTED = "Compacted."
 
 # Spoken registers: what is said TO the user plays at full volume; what
-# cc-voice says while working (tool narration) plays quieter, so the two
+# hands-free-voice says while working (tool narration) plays quieter, so the two
 # are told apart by ear.
 SPEECH = "speech"
 NARRATION = "narration"
@@ -159,7 +159,7 @@ def is_empty_machine_result(origin: str | None, text: str) -> bool:
 # Roles: what a spoken line IS, for the replay cursor. "answer" is the
 # ⟦voice⟧ content said to the user (a result's block, a mid-turn block);
 # "closer" the percent or its fallback; "narration" a tool line;
-# "status" cc-voice's own remarks (compaction marks, errors, acks).
+# "status" hands-free-voice's own remarks (compaction marks, errors, acks).
 ANSWER, CLOSER, NARRATION_ROLE, STATUS = "answer", "closer", "narration", "status"
 
 

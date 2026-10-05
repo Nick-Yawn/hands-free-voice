@@ -1,7 +1,7 @@
 """The voice contract handed to every spawn as --append-system-prompt-file.
 
 Passing it as a system-prompt file means there is no install step, it
-survives compaction, and it touches only cc-voice sessions (design §4).
+survives compaction, and it touches only hands-free-voice sessions (design §4).
 The text ships inside the package; a copy is written to the project's
 state dir on every start so the CLI always gets a plain file path.
 """
@@ -13,7 +13,7 @@ CONTRACT_FILENAME = "claude-contract.md"
 
 
 def contract_text() -> str:
-    return resources.files("cc_voice").joinpath("contract.md").read_text(encoding="utf-8")
+    return resources.files("hands_free_voice").joinpath("contract.md").read_text(encoding="utf-8")
 
 
 def write_contract(state_dir: Path, text: str | None = None) -> Path:

@@ -2,7 +2,7 @@
 
 import asyncio
 
-from cc_voice.spoken_log import SpokenLog
+from hands_free_voice.spoken_log import SpokenLog
 
 
 class FakeVoice:

@@ -1,4 +1,4 @@
-from cc_voice.narrate import narrate_tool
+from hands_free_voice.narrate import narrate_tool
 
 
 def test_files_commands_agents_searches():

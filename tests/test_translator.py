@@ -2,7 +2,7 @@
 
 import json
 
-from cc_voice.translator import (
+from hands_free_voice.translator import (
     NO_VOICE_BLOCK,
     TURN_FAILED,
     Translator,

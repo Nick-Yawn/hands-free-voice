@@ -1,12 +1,12 @@
 """Per-project state on disk: the session pin, the lock, the private log.
 
-Everything lives under ~/.local/state/cc-voice/projects/<slug>/ (or
-$CC_VOICE_STATE_DIR), never inside the project folder, so a user's repo
+Everything lives under ~/.local/state/hands-free-voice/projects/<slug>/ (or
+$HANDS_FREE_VOICE_STATE_DIR), never inside the project folder, so a user's repo
 is never touched. The slug is the folder's name plus a short hash of
 its absolute path.
 
   session_id   the pinned claude session, resumed on the next start
-  lock         JSON: the cc-voice host pid, the child claude pid and the
+  lock         JSON: the hands-free-voice host pid, the child claude pid and the
                session id — so a second driver refuses the session, and
                a stray child from a crashed host can be found and killed
   log.jsonl    every raw stream record and every heard, dropped, sent
@@ -23,8 +23,8 @@ import subprocess
 import time
 from pathlib import Path
 
-STATE_DIR_ENV = "CC_VOICE_STATE_DIR"
-DEFAULT_STATE_DIR = Path("~/.local/state/cc-voice")
+STATE_DIR_ENV = "HANDS_FREE_VOICE_STATE_DIR"
+DEFAULT_STATE_DIR = Path("~/.local/state/hands-free-voice")
 
 
 def project_slug(project_dir: str | os.PathLike) -> str:
@@ -129,7 +129,7 @@ def kill_group(pid: int, grace_s: float = 2.0) -> None:
 
 
 class LockFile:
-    """Which cc-voice holds this project's session, and which child."""
+    """Which hands-free-voice holds this project's session, and which child."""
 
     def __init__(self, path: Path):
         self.path = Path(path)

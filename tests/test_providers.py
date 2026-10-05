@@ -9,8 +9,8 @@ import urllib.parse
 
 import pytest
 
-from cc_voice.providers import Error, Final, Partial, SpeechStarted, STT, TTS, Word
-from cc_voice.providers.cartesia import (
+from hands_free_voice.providers import Error, Final, Partial, SpeechStarted, STT, TTS, Word
+from hands_free_voice.providers.cartesia import (
     CartesiaSTT,
     CartesiaTTS,
     parse_message as parse_cartesia,
@@ -18,8 +18,8 @@ from cc_voice.providers.cartesia import (
     request_json,
     stt_url,
 )
-from cc_voice.providers.deepgram import DeepgramSTT, listen_url, parse_message as parse_deepgram
-from cc_voice.providers.fake import FakeSTT, FakeTTS
+from hands_free_voice.providers.deepgram import DeepgramSTT, listen_url, parse_message as parse_deepgram
+from hands_free_voice.providers.fake import FakeSTT, FakeTTS
 
 
 class FakeWS:
@@ -280,6 +280,10 @@ def test_listen_url_carries_model_encoding_and_keyterms():
     assert q["keyterm"] == ["operator", "over"]
     assert "keyterm" not in urllib.parse.parse_qs(
         urllib.parse.urlparse(listen_url("nova-3", 16000, [], "en")).query)
+    # out of Deepgram's model training unless the config says otherwise
+    assert q["mip_opt_out"] == ["true"]
+    assert "mip_opt_out" not in urllib.parse.parse_qs(urllib.parse.urlparse(
+        listen_url("nova-3", 16000, [], "en", training_opt_out=False)).query)
 
 
 def test_parse_deepgram_messages():

@@ -1,4 +1,4 @@
-"""The SpokenLog: every line cc-voice says, and a cursor playing through it.
+"""The SpokenLog: every line hands-free-voice says, and a cursor playing through it.
 
 Nothing is dropped; the cursor just moves. Pause, resume, "again", "back
 N" and pause-while-the-user-talks all fall out of the cursor:
@@ -22,7 +22,8 @@ N" and pause-while-the-user-talks all fall out of the cursor:
 
 The player calls `speak(text, register)` for each entry; the callable
 owns synthesis and playback (or printing, in text mode) and must honor
-cancellation promptly.
+cancellation promptly. on_change() fires as a line starts or stops
+playing, so a watcher can tell speaking from silent.
 """
 
 import asyncio
@@ -44,10 +45,11 @@ class Entry:
 
 
 class SpokenLog:
-    def __init__(self, speak, *, on_start=None, on_error=None):
+    def __init__(self, speak, *, on_start=None, on_error=None, on_change=None):
         self._speak = speak
         self.on_start = on_start      # (entry) as a line starts playing
         self.on_error = on_error      # (entry, exc) when a line fails
+        self.on_change = on_change    # () as a line starts or stops playing
         self.entries: list[Entry] = []
         self.cursor = 0
         self.playing: int | None = None
@@ -187,6 +189,8 @@ class SpokenLog:
             self.playing = idx
             if self.on_start:
                 self.on_start(entry)
+            if self.on_change:
+                self.on_change()
             self._interrupted = False
             self._current = asyncio.ensure_future(self._speak(entry.text, entry.register))
             try:
@@ -206,3 +210,5 @@ class SpokenLog:
             finally:
                 self.playing = None
                 self._current = None
+                if self.on_change:
+                    self.on_change()
