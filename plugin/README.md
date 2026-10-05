@@ -41,7 +41,8 @@ socket.
   request opts out of Deepgram's model training.
 - **Cartesia** gets the text of every line spoken aloud, including the
   narration of tool calls, which names files and commands. Cartesia may
-  train on it unless you opt out with its form.
+  train on it unless you turn that off in your Cartesia account's
+  settings.
 - **GitHub**, only when you say "operator feedback … over" and then
   "operator confirm" to the draft read back to you: your feedback's
   words, a summary and version numbers, filed by Claude with your own

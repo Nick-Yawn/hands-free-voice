@@ -101,10 +101,12 @@ and what each service promises to do with it.
   `[stt.deepgram] training_opt_out = false`.
 - **Cartesia** (text to speech) gets the text of every line spoken
   aloud: the spoken summaries, the narration of tool calls (which
-  names files and commands), and status lines. Its privacy policy says
-  it may use that text to train its models. You can opt out with
-  [Cartesia's opt-out form](https://cartesia.ai/legal/privacy.html);
-  zero data retention is available on Cartesia Enterprise.
+  names files and commands), and status lines. Its
+  [privacy policy](https://www.cartesia.ai/legal/privacy) says it may
+  use that text to train its models. Turn that off in your Cartesia
+  account's settings; it applies from then on. Cartesia doesn't say how
+  long it keeps the text; zero data retention is available on Cartesia
+  Enterprise.
 - **Claude** gets your words as messages, exactly as if you had
   typed them.
 - **GitHub**, only when you say "operator feedback … over" and then,
