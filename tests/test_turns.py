@@ -98,6 +98,8 @@ def test_commands_never_open_a_turn():
     assert m.feed("Operator resume") == [("command", "resume", None)]
     assert m.feed("Operator, quit.") == [("command", "quit", None)]
     assert m.feed("Operator, compact yourself.") == [("command", "compact", None)]
+    assert m.feed("Operator, confirm.") == [("command", "confirm", None)]
+    assert m.feed("Operator confirmed") == [("command", "confirm", None)]
     assert m.state == m.IDLE
 
 

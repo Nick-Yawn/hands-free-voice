@@ -298,6 +298,8 @@ class VoiceFront:
             self._out("  · cancelled")
         elif name == "compact":
             host.command_compact()
+        elif name == "confirm":
+            host.command_confirm()
         elif name == "quit":
             self._out("  · quit")
             asyncio.ensure_future(host.quit())

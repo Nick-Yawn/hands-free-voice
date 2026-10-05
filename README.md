@@ -49,7 +49,6 @@ turn on "Listen at session start" in `/config`.
 |---|---|---|
 | "operator, ..." | opens a turn; keep talking, pause as long as you like | a soft tick |
 | "... over" | sends the turn | a rising two-note run, then "Received." |
-| "operator feedback ... over" | files your words as an issue on this repo (see below) | Claude's answer |
 | "operator stop" | pauses speech | a falling pair (G to E) |
 | "operator resume" | resumes where it stopped | the same pair rising |
 | "operator again" | replays the last answer | a short high tick, then the answer |
@@ -57,6 +56,8 @@ turn on "Listen at session start" in `/config`.
 | "operator status" | the link, the mic, what Claude is doing, the context fill | the tick, then the status |
 | "operator compact" | compacts the session | the tick, then "Received." |
 | "operator quit" | turns voice off | the tick, then a falling triad |
+| "operator feedback ... over" | drafts an issue on this repo from your words and reads it back (see below) | the draft, read back |
+| "operator confirm" | files the draft just read back; say anything else and it is dropped | the tick, then Claude's answer |
 
 While Claude works, a level double tap every 15 seconds says it is
 still going. Every command is acknowledged by ear the moment it is
@@ -68,7 +69,7 @@ fixed slot that says what the listener is doing, or the last few words
 it heard as you say them:
 
 ```
-⚠ hands-free-voice: ▸ weather in Houston    "operator [… over | feedback … over | stop | resume | again | never mind | status | compact | quit]"
+⚠ hands-free-voice: ▸ weather in Houston    "operator [… over | stop | resume | again | never mind | status | compact | quit | feedback … over | confirm]"
 ```
 
 Anything said without the address word is ignored. "operator" counts
@@ -106,10 +107,13 @@ and what each service promises to do with it.
   zero data retention is available on Cartesia Enterprise.
 - **Claude** gets your words as messages, exactly as if you had
   typed them.
-- **GitHub**, only when you say "operator feedback … over": the words
-  of your feedback, a one-line summary, and version numbers, filed as an
-  issue on this repo by Claude with your own `gh` login. Nothing else
-  from your session or logs goes in it.
+- **GitHub**, only when you say "operator feedback … over" and then,
+  once Claude has read the draft back to you, "operator confirm": the
+  words of your feedback, a one-line summary, and version numbers, filed
+  as an issue on this repo by Claude with your own `gh` login. Nothing
+  else from your session or logs goes in it. Without the confirm the mod
+  refuses the filing, so a message that starts with "feedback" by
+  accident files nothing.
 - **PyPI**: on first start, uvx downloads the listener
   (`hands-free-voice`) and its dependencies. Nothing is sent.
 
@@ -180,7 +184,8 @@ nothing and holds no connection.
   switching profiles. It recovers by itself.
 - **Anything else.** The listener's log is
   `~/.local/state/hands-free-voice/projects/<project>/listen.jsonl`.
-  Say "operator feedback, ... over" to file an issue, or open one at
+  Say "operator feedback, ... over" and confirm the draft to file an
+  issue, or open one at
   [github.com/Nick-Yawn/hands-free-voice/issues](https://github.com/Nick-Yawn/hands-free-voice/issues).
 
 ## How it works
@@ -241,15 +246,17 @@ claude plugin validate .        # the marketplace and the mod's manifest
 ```
 
 To run the mod from the checkout, start Claude Code with
-`claude --plugin-dir ./plugin` and set the plugin's "Listener command"
-in `/config` to `<checkout>/.venv/bin/hands-free-voice listen`. Edits to
-the mod reload it, and voice comes back on by itself.
+`claude --plugin-dir ./plugin`. Edits to the mod reload it, and voice
+comes back on by itself. To run the checkout's listener too, point
+`LISTENER` in `plugin/hooks/register.ts` at
+`<checkout>/.venv/bin/hands-free-voice listen` while you work; the
+release test fails until it is pinned again.
 
 A release raises the version in `pyproject.toml`,
-`hands_free_voice/__init__.py`, `plugin/.claude-plugin/plugin.json` and
-the pinned listener command in the manifest, `plugin/hooks/register.ts` and
-`plugin/README.md` (a test holds them together), then publishes the package
-to PyPI.
+`hands_free_voice/__init__.py` and `plugin/.claude-plugin/plugin.json`,
+and in the pinned listener command in `plugin/hooks/register.ts` and
+`plugin/README.md` (a test holds them together), then publishes the
+package to PyPI before pushing.
 
 `tools/live_check.py` hears the real vendors without a microphone: it
 synthesizes an utterance with Cartesia and pushes it through the real

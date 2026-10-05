@@ -22,6 +22,7 @@ export type ListenerLine =
   | ListenerState
   | { type: 'turn'; text: string }
   | { type: 'compact' }
+  | { type: 'confirm' }
   | { type: 'log'; text: string }
   | { type: 'error'; text: string }
 
@@ -51,7 +52,7 @@ export class LineSplitter {
 const isString = (v: unknown): v is string => typeof v === 'string'
 
 /** The spoken commands, one phrase each, when the listener's hello names none. */
-export const COMMANDS = ['stop', 'resume', 'again', 'never mind', 'status', 'compact', 'quit']
+export const COMMANDS = ['stop', 'resume', 'again', 'never mind', 'status', 'compact', 'quit', 'confirm']
 
 /** A stdout line as a ListenerLine, or undefined for anything else. */
 export const parseLine = (line: string): ListenerLine | undefined => {
@@ -95,7 +96,8 @@ export const parseLine = (line: string): ListenerLine | undefined => {
     case 'turn':
       return isString(o.text) ? { type: 'turn', text: o.text } : undefined
     case 'compact':
-      return { type: 'compact' }
+    case 'confirm':
+      return { type: o.type }
     case 'log':
     case 'error':
       return isString(o.text) ? { type: o.type, text: o.text } : undefined
@@ -117,15 +119,19 @@ export const narrationInput = (input: Record<string, unknown>): Record<string, s
 
 // The status line is a fixed-width slot, then every spoken command, always
 // all of them: only the slot changes, so the commands never move.
-//   waiting                 "operator [… over | stop | resume | … | quit]"
-//   ▸ weather in Houston    "operator [… over | stop | resume | … | quit]"
+//   waiting                 "operator [… over | stop | … | quit | feedback … over | confirm]"
+//   ▸ weather in Houston    "operator [… over | stop | … | quit | feedback … over | confirm]"
 
 /** The slot's width in columns. */
 export const SLOT = 22
 
-/** The spoken commands as usage: the address word, then one of them. */
-export const usage = (address: string, closer: string, commands: string[]): string =>
-  `"${address} [… ${[closer, `feedback … ${closer}`, ...commands].join(' | ')}]"`
+/** The spoken commands as usage: the address word, then one of them. Feedback
+ *  comes last, followed by the confirm that files it. */
+export const usage = (address: string, closer: string, commands: string[]): string => {
+  const own = commands.filter(c => c !== 'confirm')
+  const feedback = [`feedback … ${closer}`, ...(commands.includes('confirm') ? ['confirm'] : [])]
+  return `"${address} [… ${[closer, ...own, ...feedback].join(' | ')}]"`
+}
 
 /** The last words heard that fit the slot, oldest dropped first; "…" marks a drop. */
 export const fitWords = (words: string, width = SLOT): string => {
@@ -169,22 +175,71 @@ export const UNREAD_NUDGE =
 /** Where feedback said by voice is filed. */
 export const FEEDBACK_REPO = 'Nick-Yawn/hands-free-voice'
 
+/** What the mod tells Claude when the user says the address word, then "confirm". */
+export const CONFIRMED =
+  'The user confirmed by voice: file the feedback issue you just read back to them, exactly as read. ' +
+  'If you have not read one back, say there is nothing to confirm.'
+
+/** Whether a Bash command would open an issue on the feedback repo: allowed
+ *  only after the user's spoken confirm. */
+export const filesFeedback = (command: string): boolean =>
+  /\bgh\s+issue\s+create\b/.test(command) && command.toLowerCase().includes(FEEDBACK_REPO.toLowerCase())
+
+/** Why a filing was refused without the confirm. */
+export const UNCONFIRMED =
+  'Feedback is filed only after the user confirms it by voice. Read the issue back in your voice block ' +
+  '(the title and their quoted words), then ask them to say the address word followed by "confirm".'
+
+/** The spoken confirm: it lets one feedback filing through, and only until
+ *  the user says something else, so it answers just the draft read back. */
+export class Confirmation {
+  private given = false
+
+  /** The user said the address word, then "confirm". */
+  give(): void {
+    this.given = true
+  }
+
+  /** Anything else heard: the draft the confirm answered is gone. */
+  drop(): void {
+    this.given = false
+  }
+
+  /** Whether a filing may go through now; one that does spends the confirm. */
+  spend(): boolean {
+    const ok = this.given
+    this.given = false
+    return ok
+  }
+}
+
+/** The tool-call guard: why this command is refused, or undefined to let it run. */
+export const refuseFiling = (command: string, confirmation: Confirmation): string | undefined =>
+  filesFeedback(command) && !confirmation.spend() ? UNCONFIRMED : undefined
+
 /** The system prompt's rule for "operator feedback … over": an ordinary heard
- *  turn whose first word is "feedback", filed by Claude as a GitHub issue. */
+ *  turn whose first word is "feedback", read back, then filed by Claude as a
+ *  GitHub issue once the user confirms it. A message can begin with
+ *  "feedback" by accident, and the issue is public. */
 export const feedbackRule = (version: string | undefined): string =>
   [
     '# Feedback by voice',
     '',
     'A message from the user that begins with the word "feedback" is feedback about hands-free-voice itself, ' +
-      'not a task for this project. File it right away as a GitHub issue on ' +
-      `${FEEDBACK_REPO} with \`gh issue create --repo ${FEEDBACK_REPO}\`:`,
+      'not a task for this project. It becomes a public GitHub issue on ' +
+      `${FEEDBACK_REPO}, so never file it straight away: a message can begin with "feedback" by accident.`,
     '',
-    '- Title: a short summary in your own words.',
-    '- Body: their words after "feedback", quoted as heard, then one line: ' +
+    '1. Draft the issue:',
+    '   - Title: a short summary in your own words.',
+    '   - Body: their words after "feedback", quoted as heard, then one line: ' +
       `"Filed by voice with hands-free-voice ${version ?? '(unknown version)'} · Claude Code <\`claude --version\`> · <\`uname -sr\`>".`,
-    '- Nothing else from this session, the project or any log goes in it.',
+    '   - Nothing else from this session, the project or any log goes in it.',
+    '2. Read it back in your voice block: the title, then their quoted words. Ask them to say the address word ' +
+      'followed by "confirm" to file it, or anything else to drop it. Describe that, never quote it as one phrase.',
+    `3. Only when the next message is their spoken confirmation, file it with \`gh issue create --repo ${FEEDBACK_REPO}\`. ` +
+      'Any other next message drops the draft. A filing without the confirmation is refused.',
     '',
-    'If `gh` is missing or not signed in, give them a ' +
+    'If `gh` is missing or not signed in, after the confirmation give them a ' +
       `https://github.com/${FEEDBACK_REPO}/issues/new link with the title and body filled in instead. ` +
       'Then say in your voice block what you filed, or why you could not.',
   ].join('\n')

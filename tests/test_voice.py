@@ -327,6 +327,19 @@ def test_compact_by_voice_writes_the_slash_command(tmp_path):
     asyncio.run(scenario())
 
 
+def test_confirm_without_the_mod_has_nothing_to_confirm(tmp_path):
+    async def scenario():
+        host, seat, claude, stt, tts, stream, mic, out, run = build(tmp_path, {})
+        await until(lambda: stt.sessions)
+        stt.queue.put_nowait(Final("Operator confirm"))
+        await until(lambda: ("Nothing to confirm.", None) in tts.spoken)
+        assert not claude.procs or not claude.procs[0].stdin.writes
+        stt.queue.put_nowait(Final("Operator quit"))
+        await run
+
+    asyncio.run(scenario())
+
+
 def test_a_stop_holds_against_new_output_but_ends_on_new_input(tmp_path):
     answers = {"first": [result("⟦voice⟧First answer.⟦/voice⟧", used=100, window=1000)],
                "second": [result("⟦voice⟧Second answer.⟦/voice⟧", used=200, window=1000)]}

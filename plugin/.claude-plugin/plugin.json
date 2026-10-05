@@ -1,7 +1,7 @@
 {
   "name": "hands-free-voice",
   "displayName": "Hands-free voice",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Talk to Claude Code hands-free: say \"operator\", talk, say \"over\"; it answers aloud and reads the context percent as the closer.",
   "author": {
     "name": "Nicholas Yuan",
@@ -16,12 +16,6 @@
   "privacyPolicyUrl": "https://github.com/Nick-Yawn/hands-free-voice#what-leaves-your-machine",
   "types": "./types/index.d.ts",
   "userConfig": {
-    "command": {
-      "type": "string",
-      "title": "Listener command",
-      "description": "The command that starts the audio half (the hands-free-voice Python package), split on spaces. --project is added.",
-      "default": "uvx hands-free-voice==0.1.0 listen"
-    },
     "deepgram_api_key": {
       "type": "string",
       "title": "Deepgram API key",

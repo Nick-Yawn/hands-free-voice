@@ -21,14 +21,16 @@ the plugin's audio process.
 ## Talking to it
 
 Start with "operator", then one of: your request ending in "over",
-"feedback … over", "stop", "resume", "again", "never mind", "status",
-"compact" or "quit". The status line always lists them all. Tones
+"stop", "resume", "again", "never mind", "status", "compact", "quit",
+or "feedback … over", which Claude reads back as a draft issue and files
+only when you then say "operator confirm". The status line always lists
+them all. Tones
 acknowledge each command the moment it is heard, and a soft double tap
 every 15 seconds says Claude is still working.
 
 ## What it runs and sends
 
-The plugin starts one local process, `uvx hands-free-voice==0.1.0
+The plugin starts one local process, `uvx hands-free-voice==0.1.1
 listen`, the [hands-free-voice](https://pypi.org/project/hands-free-voice/)
 package from PyPI, pinned to this plugin's version. It owns the
 microphone and the speaker and talks to the plugin over a private Unix
@@ -41,9 +43,11 @@ socket.
 - **Cartesia** gets the text of every line spoken aloud, including the
   narration of tool calls, which names files and commands. Cartesia may
   train on it unless you opt out with its form.
-- **GitHub**, only when you say "operator feedback … over": your
-  feedback's words, a summary and version numbers, filed by Claude with
-  your own `gh` login as an issue on the plugin's repository.
+- **GitHub**, only when you say "operator feedback … over" and then
+  "operator confirm" to the draft read back to you: your feedback's
+  words, a summary and version numbers, filed by Claude with your own
+  `gh` login as an issue on the plugin's repository. Without the confirm
+  the plugin refuses the filing.
 - **PyPI**: uvx downloads the listener and its dependencies on first
   start.
 

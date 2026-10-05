@@ -3,25 +3,24 @@
 Where hands-free-voice stands on the way to a public release, and how the
 Claude plugin directory takes a submission. Checked 2026-10-04.
 
-## Before release
+## Where it stands
 
-1. **Publish the listener to PyPI** (the `hands-free-voice` name was
-   free). The package builds and launches as the mod runs it
-   (`uvx hands-free-voice==0.1.0 listen`); the upload waits on a PyPI
-   account token. Until it is up, the mod's default command fails.
-2. **Push the branch and merge it to main**, so
-   `/plugin marketplace add Nick-Yawn/hands-free-voice` finds
-   `.claude-plugin/marketplace.json` and the `plugin/` folder.
-3. **Install it the way a user will** (marketplace add, install, keys,
-   `/hands-free`) on a machine or account that has never run it.
+Released: 0.1.1 is on PyPI and main, so anyone can install it with
+`/plugin marketplace add Nick-Yawn/hands-free-voice`. A fresh install (a
+Claude Code profile that had never seen it, keys entered at install,
+the listener downloaded from PyPI) worked on 2026-10-04.
 
-Done: the mod in the repo as `plugin/` with its own README and LICENSE
-and a root marketplace; the manifest's homepage, repository, license,
-keywords and directory links; the pinned listener command, held to the
-package version by a test; the mod-first README; the repo rename;
-Deepgram's training opt-out on by default; feedback by voice; the fixed
-status line; voice coming back after a reload; level tones; "README"
-said as "read me".
+Done: feedback read back as a draft and filed only after a spoken
+"confirm", which the mod enforces by refusing the filing without one
+(0.1.1; 0.1.0 filed straight away); feedback and confirm last in the
+status line; setup asks only for the keys and autostart; the mod in the
+repo as `plugin/` with its own README and LICENSE and a root
+marketplace; the manifest's homepage, repository, license, keywords and
+directory links; the pinned listener command, held to the package
+version by a test; the mod-first README; the repo rename; Deepgram's
+training opt-out on by default; feedback by voice; the fixed status
+line; voice coming back after a reload; level tones; "README" said as
+"read me".
 
 ## Later
 

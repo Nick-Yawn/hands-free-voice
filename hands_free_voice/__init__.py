@@ -3,4 +3,4 @@
 You talk to your coding agent, and it talks back. See docs/design.md.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

@@ -163,6 +163,9 @@ class ModSeat:
         self._write({"type": "compact"})
         self.state.mark_compact_write()
 
+    async def confirm(self) -> None:
+        self._write({"type": "confirm"})
+
     def event(self, ev: dict) -> None:
         for out in self.state.event(ev):
             self._on_event(out)

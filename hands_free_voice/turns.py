@@ -59,10 +59,14 @@ COMMANDS = {
     "quit": "quit",
     "exit": "quit",
     "end session": "quit",
+    "confirm": "confirm",  # files the feedback just read back (the mod's)
+    "confirmed": "confirm",
 }
 
-# One phrase per command, in the order the mod's status line lists them.
-SHOWN_COMMANDS = ("stop", "resume", "again", "never mind", "status", "compact", "quit")
+# One phrase per command, in the order the mod's status line lists them
+# (it shows confirm last, after the feedback it confirms).
+SHOWN_COMMANDS = ("stop", "resume", "again", "never mind", "status", "compact", "quit",
+                  "confirm")
 
 
 def _norm(word: str) -> str:

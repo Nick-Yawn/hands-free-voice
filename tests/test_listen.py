@@ -72,7 +72,7 @@ def test_a_heard_turn_goes_out_and_the_answer_comes_back_as_speech(sock_dir):
         hello = lines.of("hello")[0]
         assert "⟦voice⟧" in hello["contract"] and hello["address"] == "operator"
         assert hello["commands"] == ["stop", "resume", "again", "never mind", "status",
-                                     "compact", "quit"]
+                                     "compact", "quit", "confirm"]
         sock = hello["socket"]
 
         stt.queue.put_nowait(Final("Operator, run the tests"))
@@ -98,6 +98,10 @@ def test_a_heard_turn_goes_out_and_the_answer_comes_back_as_speech(sock_dir):
 
         stt.queue.put_nowait(Final("Operator compact"))
         await until(lambda: lines.of("compact"))
+        # the confirm goes to the mod, which files the feedback it answers
+        stt.queue.put_nowait(Final("Operator confirm"))
+        await until(lambda: lines.of("confirm"))
+        assert not any(line == {"type": "turn", "text": "confirm"} for line in lines.of("turn"))
 
         assert (await http(sock, "POST", "/quit", {}))[0] == 200
         assert await asyncio.wait_for(run, 5) is None  # a quit, not a signal

@@ -17,6 +17,7 @@ from hands_free_voice.state import EventLog
 RECEIVED = "Received."
 COMPACTING = "Compacting."
 COMPACT = object()  # the turn queue's /compact entry
+CONFIRM = object()  # the turn queue's spoken confirm, for the mod
 
 
 def compose_status(snap: dict) -> str:
@@ -180,6 +181,14 @@ class Host:
         self.say_local(RECEIVED + (" Compacting after this turn lands." if busy else ""))
         self.turn_q.put_nowait(COMPACT)
 
+    def command_confirm(self) -> None:
+        """Confirm files the feedback the mod's Claude read back. Only the mod
+        files feedback; with no mod there is nothing to confirm."""
+        if not hasattr(self.seat, "confirm"):
+            self.say_local("Nothing to confirm.")
+            return
+        self.turn_q.put_nowait(CONFIRM)
+
     async def turn_worker(self) -> None:
         while True:
             item = await self.turn_q.get()
@@ -190,6 +199,8 @@ class Host:
                         await asyncio.sleep(0.05)
                     self.say_local(COMPACTING)
                     await self.seat.compact()
+                elif item is CONFIRM:
+                    await self.seat.confirm()
                 else:
                     await self.seat.submit(item)
             except asyncio.CancelledError:

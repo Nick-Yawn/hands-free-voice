@@ -1,6 +1,8 @@
 import type { EngineInterface, PluginOptions, Register } from 'claude-code'
 
 import {
+  CONFIRMED,
+  Confirmation,
   LineSplitter,
   type ListenerEvent,
   type ListenerLine,
@@ -10,6 +12,7 @@ import {
   midTurn,
   narrationInput,
   parseLine,
+  refuseFiling,
   slotFor,
   splitArgv,
   statusLine,
@@ -26,8 +29,10 @@ import {
 const COMMAND = 'hands-free'
 const SECTION = 'hands-free-voice:contract'
 const BASE = 'http://hands-free'
-// The listener this version of the mod speaks to, pinned: the manifest's default too.
-const LISTENER = 'uvx hands-free-voice==0.1.0 listen'
+// The listener this version of the mod speaks to, pinned. To run a checkout's
+// listener while developing, point this at its .venv/bin/hands-free-voice;
+// tests/test_release.py fails while it points anywhere else.
+const LISTENER = 'uvx hands-free-voice==0.1.1 listen'
 // Whether voice should be on. Module variables start over on a hot reload, which
 // also stops the listener; this survives it, so the new copy can start it again.
 const LISTENING = { plugin: 'hands-free-voice', key: 'listening' } as const
@@ -40,6 +45,7 @@ let commands: string | undefined // the spoken commands as usage, from its hello
 let heard: ListenerState = { type: 'state', state: 'idle' } // its last reported state
 let turnId: string | undefined // the main loop's running turn
 let unread = 0 // heard turns put into the running turn that no request has carried yet
+const confirmation = new Confirmation() // the spoken confirm a feedback filing needs
 let posting: Promise<unknown> = Promise.resolve()
 
 // Posts go one at a time, in order: a turn's text must reach the listener
@@ -103,10 +109,15 @@ function onLine($: EngineInterface, line: ListenerLine) {
       paint($)
       return
     case 'turn':
+      confirmation.drop()
       void deliver($, line.text)
       return
     case 'compact':
       void compact($)
+      return
+    case 'confirm':
+      confirmation.give()
+      void deliver($, CONFIRMED)
       return
     case 'log':
       $.ui.log(line.text, { to: 'debug' })
@@ -125,6 +136,7 @@ async function listen($: EngineInterface, argv: string[], cwd: string, env: Reco
   contract = undefined
   commands = undefined
   heard = { type: 'state', state: 'idle' }
+  confirmation.drop()
   paint($)
   const lines = new LineSplitter()
   let killed = false
@@ -166,7 +178,7 @@ async function listen($: EngineInterface, argv: string[], cwd: string, env: Reco
 
 function start($: EngineInterface, cwd: string, options: PluginOptions) {
   void $.state.set(LISTENING, true)
-  const argv = [...splitArgv(String(options.command ?? LISTENER)), '--project', cwd]
+  const argv = [...splitArgv(LISTENER), '--project', cwd]
   const env: Record<string, string> = {}
   if (options.deepgram_api_key) env.DEEPGRAM_API_KEY = String(options.deepgram_api_key)
   if (options.cartesia_api_key) env.CARTESIA_API_KEY = String(options.cartesia_api_key)
@@ -242,6 +254,12 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', ($, e, next) => {
+    // Feedback said by voice becomes a public issue only after the spoken
+    // confirm; a message that begins with "feedback" by accident files nothing.
+    if (child && e.tool === 'Bash') {
+      const refused = refuseFiling(e.command, confirmation)
+      if (refused) return { deny: refused }
+    }
     if (e.agentId === undefined && socket) {
       post($, { kind: 'tool', name: String(e.tool), input: narrationInput(e as unknown as Record<string, unknown>) })
     }

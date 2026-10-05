@@ -2,13 +2,16 @@ import { expect, test } from 'claude-code/testing'
 
 import {
   COMMANDS,
+  Confirmation,
   LineSplitter,
   FEEDBACK_REPO,
+  UNCONFIRMED,
   SLOT,
   feedbackRule,
   fitWords,
   narrationInput,
   parseLine,
+  refuseFiling,
   slotFor,
   splitArgv,
   statusLine,
@@ -41,6 +44,7 @@ test('only well-formed listener lines parse', async () => {
     words: 'run the tests',
   })
   expect(parseLine('{"type":"state","state":"speaking"}')).toEqual({ type: 'state', state: 'speaking' })
+  expect(parseLine('{"type":"confirm"}')).toEqual({ type: 'confirm' })
   expect(parseLine('{"type":"state","state":"dancing"}')).toBeUndefined()
   expect(parseLine('{"type":"turn"}')).toBeUndefined()
   expect(parseLine('{"type":"hello","socket":"/s"}')).toBeUndefined()
@@ -64,9 +68,13 @@ test('the command splits on whitespace', async () => {
   ])
 })
 
-test('the usage lists every spoken command after the address word', async () => {
+test('the usage lists every spoken command after the address word, feedback and its confirm last', async () => {
   expect(usage('operator', 'over', COMMANDS)).toBe(
-    '"operator [… over | feedback … over | stop | resume | again | never mind | status | compact | quit]"',
+    '"operator [… over | stop | resume | again | never mind | status | compact | quit | feedback … over | confirm]"',
+  )
+  // a listener that cannot hear the confirm: feedback is still shown, and nothing can file it
+  expect(usage('operator', 'over', COMMANDS.filter(c => c !== 'confirm'))).toBe(
+    '"operator [… over | stop | resume | again | never mind | status | compact | quit | feedback … over]"',
   )
 })
 
@@ -94,10 +102,45 @@ test('the status line is the same length whatever the slot says', async () => {
   expect(new Set(lengths).size).toBe(1)
 })
 
-test('the feedback rule names the repo, the version, and what stays out', async () => {
+test('the feedback rule reads the draft back and files it only on the confirm', async () => {
   const rule = feedbackRule('0.1.0')
   expect(rule).toContain(`gh issue create --repo ${FEEDBACK_REPO}`)
   expect(rule).toContain('hands-free-voice 0.1.0')
   expect(rule).toContain('Nothing else from this session')
+  expect(rule).toContain('never file it straight away')
+  expect(rule).toContain('Read it back in your voice block')
+  expect(rule).toContain('Any other next message drops the draft')
   expect(feedbackRule(undefined)).toContain('(unknown version)')
+})
+
+const FILING = `gh issue create --repo ${FEEDBACK_REPO} --title "x" --body "y"`
+
+test('no feedback issue is filed without the spoken confirm', async () => {
+  expect(refuseFiling(FILING, new Confirmation())).toBe(UNCONFIRMED)
+  expect(refuseFiling('gh issue create -R nick-yawn/Hands-Free-Voice --title x', new Confirmation())).toBe(
+    UNCONFIRMED,
+  )
+})
+
+test('one confirm lets one filing through', async () => {
+  const confirmation = new Confirmation()
+  confirmation.give()
+  expect(refuseFiling(FILING, confirmation)).toBeUndefined()
+  expect(refuseFiling(FILING, confirmation)).toBe(UNCONFIRMED)
+})
+
+test('anything heard after the confirm voids it', async () => {
+  const confirmation = new Confirmation()
+  confirmation.give()
+  confirmation.drop()
+  expect(refuseFiling(FILING, confirmation)).toBe(UNCONFIRMED)
+})
+
+test('other commands run untouched and leave the confirm unspent', async () => {
+  const confirmation = new Confirmation()
+  confirmation.give()
+  expect(refuseFiling(`gh issue list --repo ${FEEDBACK_REPO}`, confirmation)).toBeUndefined()
+  expect(refuseFiling('gh issue create --repo someone/else --title x', confirmation)).toBeUndefined()
+  expect(refuseFiling('git status', confirmation)).toBeUndefined()
+  expect(refuseFiling(FILING, confirmation)).toBeUndefined()
 })

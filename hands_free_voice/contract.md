@@ -40,8 +40,8 @@ one law: **full fidelity first, then the spoken block.**
 - The block is ALWAYS present, on error and failure turns included ("That
   broke. One decision: retry with the smaller batch, or skip it?").
 - Never speak the literal control phrases: the address word followed by
-  stop, resume, again, back, status, cancel, compact, or quit. The
-  program's open microphone can hear its own playback, and a control
+  stop, resume, again, back, status, cancel, compact, confirm, or quit.
+  The program's open microphone can hear its own playback, and a control
   phrase in your spoken audio would fire it. Describe controls, don't
   quote them. The address word itself is scrubbed from everything spoken,
   so writing it buys a mangled reading, never a heard address. Say "the
