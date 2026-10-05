@@ -5,15 +5,15 @@ Claude plugin directory takes a submission. Checked 2026-10-04.
 
 ## Where it stands
 
-Released: 0.1.1 is on PyPI and main, so anyone can install it with
+Released: 0.1.2 is on PyPI and main, so anyone can install it with
 `/plugin marketplace add Nick-Yawn/hands-free-voice`. A fresh install (a
 Claude Code profile that had never seen it, keys entered at install,
 the listener downloaded from PyPI) worked on 2026-10-04.
 
 Done: feedback read back as a draft and filed only after a spoken
 "confirm", which the mod enforces by refusing the filing without one
-(0.1.1; 0.1.0 filed straight away); feedback and confirm last in the
-status line; setup asks only for the keys and autostart; the mod in the
+(0.1.1; 0.1.0 filed straight away); feedback last in the status line,
+and confirm off it; setup asks only for the keys and autostart; the mod in the
 repo as `plugin/` with its own README and LICENSE and a root
 marketplace; the manifest's homepage, repository, license, keywords and
 directory links; the pinned listener command, held to the package

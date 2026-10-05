@@ -247,8 +247,10 @@ def test_configured_words():
     assert m.feed("operator hello over") == [("drop", "operator hello over")]
 
 
-def test_the_status_line_shows_one_phrase_for_every_command():
-    assert sorted(COMMANDS[p] for p in SHOWN_COMMANDS) == sorted(set(COMMANDS.values()))
+def test_the_status_line_shows_one_phrase_for_every_command_but_confirm():
+    # confirm answers a feedback read-back, which says when to say it
+    assert sorted(COMMANDS[p] for p in SHOWN_COMMANDS) == \
+        sorted(set(COMMANDS.values()) - {"confirm"})
 
 
 def test_a_partial_previews_the_turn_without_changing_it():

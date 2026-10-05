@@ -72,7 +72,7 @@ def test_a_heard_turn_goes_out_and_the_answer_comes_back_as_speech(sock_dir):
         hello = lines.of("hello")[0]
         assert "⟦voice⟧" in hello["contract"] and hello["address"] == "operator"
         assert hello["commands"] == ["stop", "resume", "again", "never mind", "status",
-                                     "compact", "quit", "confirm"]
+                                     "compact", "quit"]
         sock = hello["socket"]
 
         stt.queue.put_nowait(Final("Operator, run the tests"))

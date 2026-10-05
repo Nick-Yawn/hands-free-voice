@@ -52,7 +52,7 @@ export class LineSplitter {
 const isString = (v: unknown): v is string => typeof v === 'string'
 
 /** The spoken commands, one phrase each, when the listener's hello names none. */
-export const COMMANDS = ['stop', 'resume', 'again', 'never mind', 'status', 'compact', 'quit', 'confirm']
+export const COMMANDS = ['stop', 'resume', 'again', 'never mind', 'status', 'compact', 'quit']
 
 /** A stdout line as a ListenerLine, or undefined for anything else. */
 export const parseLine = (line: string): ListenerLine | undefined => {
@@ -119,19 +119,16 @@ export const narrationInput = (input: Record<string, unknown>): Record<string, s
 
 // The status line is a fixed-width slot, then every spoken command, always
 // all of them: only the slot changes, so the commands never move.
-//   waiting                 "operator [… over | stop | … | quit | feedback … over | confirm]"
-//   ▸ weather in Houston    "operator [… over | stop | … | quit | feedback … over | confirm]"
+//   waiting                 "operator [… over | stop | … | quit | feedback … over]"
+//   ▸ weather in Houston    "operator [… over | stop | … | quit | feedback … over]"
 
 /** The slot's width in columns. */
 export const SLOT = 22
 
-/** The spoken commands as usage: the address word, then one of them. Feedback
- *  comes last, followed by the confirm that files it. */
-export const usage = (address: string, closer: string, commands: string[]): string => {
-  const own = commands.filter(c => c !== 'confirm')
-  const feedback = [`feedback … ${closer}`, ...(commands.includes('confirm') ? ['confirm'] : [])]
-  return `"${address} [… ${[closer, ...own, ...feedback].join(' | ')}]"`
-}
+/** The spoken commands as usage: the address word, then one of them, feedback
+ *  last. Its confirm is not shown: the read-back says when to say it. */
+export const usage = (address: string, closer: string, commands: string[]): string =>
+  `"${address} [… ${[closer, ...commands, `feedback … ${closer}`].join(' | ')}]"`
 
 /** The last words heard that fit the slot, oldest dropped first; "…" marks a drop. */
 export const fitWords = (words: string, width = SLOT): string => {

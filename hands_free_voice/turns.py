@@ -63,10 +63,10 @@ COMMANDS = {
     "confirmed": "confirm",
 }
 
-# One phrase per command, in the order the mod's status line lists them
-# (it shows confirm last, after the feedback it confirms).
-SHOWN_COMMANDS = ("stop", "resume", "again", "never mind", "status", "compact", "quit",
-                  "confirm")
+# One phrase per command, in the order the mod's status line lists them.
+# Confirm is left off: it matters only once a feedback draft is read back,
+# and the read-back says when to say it.
+SHOWN_COMMANDS = ("stop", "resume", "again", "never mind", "status", "compact", "quit")
 
 
 def _norm(word: str) -> str:

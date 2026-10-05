@@ -23,14 +23,13 @@ the plugin's audio process.
 Start with "operator", then one of: your request ending in "over",
 "stop", "resume", "again", "never mind", "status", "compact", "quit",
 or "feedback … over", which Claude reads back as a draft issue and files
-only when you then say "operator confirm". The status line always lists
-them all. Tones
-acknowledge each command the moment it is heard, and a soft double tap
-every 15 seconds says Claude is still working.
+only when you then say "operator confirm". The status line lists them
+all but confirm. Tones acknowledge each command the moment it is heard,
+and a soft double tap every 15 seconds says Claude is still working.
 
 ## What it runs and sends
 
-The plugin starts one local process, `uvx hands-free-voice==0.1.1
+The plugin starts one local process, `uvx hands-free-voice==0.1.2
 listen`, the [hands-free-voice](https://pypi.org/project/hands-free-voice/)
 package from PyPI, pinned to this plugin's version. It owns the
 microphone and the speaker and talks to the plugin over a private Unix

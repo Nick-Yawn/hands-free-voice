@@ -64,12 +64,12 @@ still going. Every command is acknowledged by ear the moment it is
 heard. Stop and resume share their two notes and differ by direction;
 the quit triad is the startup chime played backwards.
 
-The status line shows the same commands, always all of them, after a
-fixed slot that says what the listener is doing, or the last few words
+The status line shows the same commands, all but confirm (the read-back
+tells you when to say it), after a fixed slot that says what the listener is doing, or the last few words
 it heard as you say them:
 
 ```
-⚠ hands-free-voice: ▸ weather in Houston    "operator [… over | stop | resume | again | never mind | status | compact | quit | feedback … over | confirm]"
+⚠ hands-free-voice: ▸ weather in Houston    "operator [… over | stop | resume | again | never mind | status | compact | quit | feedback … over]"
 ```
 
 Anything said without the address word is ignored. "operator" counts

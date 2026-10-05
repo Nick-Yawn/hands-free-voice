@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hands-free-voice"
-version = "0.1.1"
+version = "0.1.2"
 description = "Hands-free voice for Claude Code: the audio half of the hands-free-voice mod, and a standalone voice front end."
 readme = "README.md"
 license = "MIT"

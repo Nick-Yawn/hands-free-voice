@@ -68,12 +68,8 @@ test('the command splits on whitespace', async () => {
   ])
 })
 
-test('the usage lists every spoken command after the address word, feedback and its confirm last', async () => {
+test('the usage lists the spoken commands after the address word, feedback last', async () => {
   expect(usage('operator', 'over', COMMANDS)).toBe(
-    '"operator [… over | stop | resume | again | never mind | status | compact | quit | feedback … over | confirm]"',
-  )
-  // a listener that cannot hear the confirm: feedback is still shown, and nothing can file it
-  expect(usage('operator', 'over', COMMANDS.filter(c => c !== 'confirm'))).toBe(
     '"operator [… over | stop | resume | again | never mind | status | compact | quit | feedback … over]"',
   )
 })
