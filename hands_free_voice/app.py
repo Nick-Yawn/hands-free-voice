@@ -18,6 +18,9 @@ RECEIVED = "Received."
 COMPACTING = "Compacting."
 COMPACT = object()  # the turn queue's /compact entry
 CONFIRM = object()  # the turn queue's spoken confirm, for the mod
+# Seat events that mean Claude is doing something: each restarts the
+# still-here clock, narrated or not.
+ACTIVITY = frozenset({"accepted", "consumed", "tool", "text", "progress", "injected"})
 
 
 def compose_status(snap: dict) -> str:
@@ -76,7 +79,7 @@ class Host:
         self.quitting = asyncio.Event()
         self.turns = 0
         self.query_since: float | None = None
-        self.last_spoken_at = clock()
+        self.last_activity_at = clock()
         self.last_pct: int | None = None
         self._compact_queued = False
         self._inflight = 0  # dequeued, not yet written (a spawn in progress)
@@ -92,7 +95,7 @@ class Host:
         self.spoken.append(text, "speech", kind="local", role="status")
 
     def _spoken_started(self, entry) -> None:
-        self.last_spoken_at = self._clock()
+        self.last_activity_at = self._clock()
         self._out(f"  » {entry.text}")
         self.log.write("spoken", index=entry.index, text=entry.text,
                        register=entry.register)
@@ -112,6 +115,8 @@ class Host:
     def on_seat_event(self, ev: dict) -> None:
         kind = ev.get("kind")
         self.log.write("seat_event", **{k: v for k, v in ev.items() if k != "say"})
+        if kind in ACTIVITY:
+            self.last_activity_at = self._clock()
         # (an event's own "kind" rides as a field; the log's kind is "seat_event")
         if kind == "accepted":
             self._out(f"→ sent: {ev.get('text', '')}")
@@ -241,15 +246,19 @@ class Host:
         return line
 
     async def still_here_ticker(self, quiet_s: float, interval_s: float = 2.0) -> None:
-        """A soft still-here cue after `quiet_s` of silence while Claude
-        works; anything spoken resets the clock."""
+        """A soft still-here cue after `quiet_s` in which Claude, though
+        working, showed nothing and nothing was spoken. Every tool call and
+        every text resets the clock, and speech holds it until it ends."""
         while True:
             await asyncio.sleep(interval_s)
-            if not self.seat.busy or self.spoken.busy:
+            if not self.seat.busy:
                 continue
-            if self._clock() - self.last_spoken_at < quiet_s:
+            if self.spoken.busy:
+                self.last_activity_at = self._clock()
                 continue
-            self.last_spoken_at = self._clock()
+            if self._clock() - self.last_activity_at < quiet_s:
+                continue
+            self.last_activity_at = self._clock()
             self.log.write("still_here")
             if self.on_still_here:
                 self.on_still_here()

@@ -1,14 +1,19 @@
 import type { EngineInterface, PluginOptions, Register } from 'claude-code'
 
+import type { ContractState } from '../types'
 import {
   CONFIRMED,
+  CONTRACT_REFUSED,
   Confirmation,
+  type ContractEvent,
   LineSplitter,
   type ListenerEvent,
   type ListenerLine,
   type ListenerState,
   UNREAD_NUDGE,
+  contractStep,
   feedbackRule,
+  hasVoiceBlock,
   midTurn,
   narrationInput,
   parseLine,
@@ -23,19 +28,21 @@ import {
 // package's `hands-free-voice listen`) owns the mic, the speech link and the
 // speaker; this module starts it, hands its heard turns to Claude Code, and
 // posts each turn's start, tool calls, text and end back for it to speak.
-// A hot reload (an edit to the mod, a changed option) stops the listener;
-// session.start starts it again when voice was on.
+// The voice contract the listener sends goes into the conversation as a
+// message (see link.ts). A hot reload (an edit to the mod, a changed option)
+// stops the listener; session.start starts it again when voice was on.
 
 const COMMAND = 'hands-free'
-const SECTION = 'hands-free-voice:contract'
 const BASE = 'http://hands-free'
 // The listener this version of the mod speaks to, pinned. To run a checkout's
 // listener while developing, point this at its .venv/bin/hands-free-voice;
 // tests/test_release.py fails while it points anywhere else.
-const LISTENER = 'uvx hands-free-voice==0.1.2 listen'
+const LISTENER = 'uvx hands-free-voice==0.1.3 listen'
 // Whether voice should be on. Module variables start over on a hot reload, which
 // also stops the listener; this survives it, so the new copy can start it again.
 const LISTENING = { plugin: 'hands-free-voice', key: 'listening' } as const
+// Where the contract stands in the conversation, which a hot reload keeps too.
+const CONTRACT = { plugin: 'hands-free-voice', key: 'contract' } as const
 
 let child: AsyncGenerator<unknown, unknown> | undefined // the listener, while it runs
 let generation = 0 // which start the running listener came from
@@ -46,7 +53,10 @@ let heard: ListenerState = { type: 'state', state: 'idle' } // its last reported
 let turnId: string | undefined // the main loop's running turn
 let unread = 0 // heard turns put into the running turn that no request has carried yet
 const confirmation = new Confirmation() // the spoken confirm a feedback filing needs
+let blockSeen = false // whether the running turn has written a voice block
+let followedSinceRow = false // whether a turn has written one since the contract was last put in
 let posting: Promise<unknown> = Promise.resolve()
+let contracting: Promise<unknown> = Promise.resolve()
 
 // Posts go one at a time, in order: a turn's text must reach the listener
 // before its end, or the end would speak the voice block a second time.
@@ -63,6 +73,30 @@ function post($: EngineInterface, ev: ListenerEvent) {
       }),
     )
     .catch(err => $.ui.log(`hands-free-voice: post failed: ${String(err)}`, { to: 'debug' }))
+}
+
+// Moves the contract one event along, appending the message that event needs.
+// One at a time: a hello and a turn's start can land together, and must not
+// both put the contract in.
+function moveContract($: EngineInterface, event: ContractEvent): Promise<unknown> {
+  contracting = contracting.then(async () => {
+    const { value } = await $.state.get(CONTRACT)
+    const state: ContractState = value ?? 'absent'
+    if ((event === 'on' || event === 'missed') && contract === undefined) return
+    const moved = contractStep(state, event, contract ?? '')
+    if (moved.row) {
+      try {
+        await $.session.append({ message: { type: 'user', content: [{ type: 'text', text: moved.row }] } })
+      } catch (err) {
+        $.ui.log(`hands-free-voice: the voice contract was refused: ${String(err)}`)
+        post($, { kind: 'notice', text: CONTRACT_REFUSED })
+        return
+      }
+      followedSinceRow = false
+    }
+    if (moved.state !== state) await $.state.set(CONTRACT, moved.state)
+  }).catch(err => $.ui.log(`hands-free-voice: contract: ${String(err)}`, { to: 'debug' }))
+  return contracting
 }
 
 // The status line: the listener's state (or "working" while a turn runs) in
@@ -101,6 +135,7 @@ function onLine($: EngineInterface, line: ListenerLine) {
       socket = line.socket
       contract = `${line.contract}\n\n${feedbackRule(line.version)}`
       commands = usage(line.address, line.closer, line.commands)
+      void moveContract($, 'on')
       paint($)
       $.ui.toast(`Hands-free voice on: say "${line.address}", talk, then "${line.closer}".`)
       return
@@ -168,9 +203,13 @@ async function listen($: EngineInterface, argv: string[], cwd: string, env: Reco
       contract = undefined
       commands = undefined
     }
-    // Ended on its own (a spoken quit, a failed start): voice stays off. Ended
-    // by a signal (a reload's): the flag stands, for the new copy to restart it.
-    if (!killed) await $.state.set(LISTENING, false)
+    // Ended on its own (a spoken quit, a failed start): voice stays off, and
+    // so does the contract. Ended by a signal (a reload's): both stand, for
+    // the new copy to restart it.
+    if (!killed) {
+      await $.state.set(LISTENING, false)
+      await moveContract($, 'off')
+    }
     $.ui.status(undefined)
     $.ui.toast('Hands-free voice off.')
   }
@@ -236,10 +275,13 @@ export const register: Register = (on, options) => {
     return { text: 'Hands-free voice starting.' }
   })
 
-  on('turn.start', ($, e, next) => {
+  on('turn.start', async ($, e, next) => {
     turnId = e.turnId
+    blockSeen = false
     post($, { kind: 'start' })
     paint($)
+    // back in after a compaction, before the turn's first request
+    if (contract !== undefined) await moveContract($, 'on')
     return next(e)
   })
 
@@ -249,7 +291,10 @@ export const register: Register = (on, options) => {
       for (; unread > 0; unread -= 1) post($, { kind: 'read' })
     }
     const step = yield* next(e)
-    if (e.agentId === undefined && step.answer) post($, { kind: 'text', text: step.answer })
+    if (e.agentId === undefined && step.answer) {
+      if (hasVoiceBlock(step.answer)) blockSeen = true
+      post($, { kind: 'text', text: step.answer })
+    }
     return step
   })
 
@@ -274,13 +319,20 @@ export const register: Register = (on, options) => {
     const wasUnread = unread > 0
     unread = 0
     if (socket) await complete($, e.answer, e.reason, e.durationMs)
+    if (contract !== undefined && e.reason === 'answer') {
+      // A block missing after the contract held means it was lost (a /clear,
+      // a compaction no hook saw) or slipped from mind: put it in again. One
+      // missing since it went in would only be put in again and again.
+      if (blockSeen) followedSinceRow = true
+      else if (followedSinceRow) void moveContract($, 'missed')
+    }
     if (wasUnread && !e.isAborted) void $.prompt.submit({ text: UNREAD_NUDGE })
     return done
   })
 
-  on('prompt.compose', async ($, e, next) => {
-    const composed = await next(e)
-    if (!contract) return composed
-    return { sections: [...composed.sections, { id: SECTION, text: contract, scope: 'session' as const }] }
+  on('session.compact', async ($, e, next) => {
+    const done = await next(e)
+    if (e.agentId === undefined && e.trigger !== 'precompute' && done.messages) void moveContract($, 'lost')
+    return done
   })
 }

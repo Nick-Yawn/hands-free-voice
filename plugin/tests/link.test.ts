@@ -7,8 +7,13 @@ import {
   FEEDBACK_REPO,
   UNCONFIRMED,
   SLOT,
+  VOICE_BACK_ON,
+  VOICE_OFF,
+  contractRow,
+  contractStep,
   feedbackRule,
   fitWords,
+  hasVoiceBlock,
   narrationInput,
   parseLine,
   refuseFiling,
@@ -139,4 +144,35 @@ test('other commands run untouched and leave the confirm unspent', async () => {
   expect(refuseFiling('gh issue create --repo someone/else --title x', confirmation)).toBeUndefined()
   expect(refuseFiling('git status', confirmation)).toBeUndefined()
   expect(refuseFiling(FILING, confirmation)).toBeUndefined()
+})
+
+test('voice coming on puts the whole contract in once', async () => {
+  const on = contractStep('absent', 'on', 'C')
+  expect(on.state).toBe('active')
+  expect(on.row).toBe(contractRow('C'))
+  expect(on.row).toContain('Hands-free voice is on.')
+  expect(on.row?.endsWith('\n\nC')).toBe(true)
+  // a reload's hello, or every turn's start: already in force, nothing more
+  expect(contractStep('active', 'on', 'C')).toEqual({ state: 'active' })
+})
+
+test('voice going off puts it aside, and coming back points at it', async () => {
+  expect(contractStep('active', 'off', 'C')).toEqual({ state: 'paused', row: VOICE_OFF })
+  expect(contractStep('paused', 'on', 'C')).toEqual({ state: 'active', row: VOICE_BACK_ON })
+  // off twice (a listener that never started) says it once
+  expect(contractStep('paused', 'off', 'C')).toEqual({ state: 'paused' })
+  expect(contractStep('absent', 'off', 'C')).toEqual({ state: 'absent' })
+})
+
+test('a compaction loses it, and the next start puts all of it back', async () => {
+  for (const state of ['active', 'paused', 'absent'] as const) {
+    expect(contractStep(state, 'lost', 'C')).toEqual({ state: 'absent' })
+  }
+  expect(contractStep('absent', 'on', 'C').row).toBe(contractRow('C'))
+})
+
+test('a missing block puts the whole contract in again', async () => {
+  expect(contractStep('active', 'missed', 'C')).toEqual({ state: 'active', row: contractRow('C') })
+  expect(hasVoiceBlock('done.\n⟦voice⟧All set.⟦/voice⟧')).toBe(true)
+  expect(hasVoiceBlock('done, no block')).toBe(false)
 })

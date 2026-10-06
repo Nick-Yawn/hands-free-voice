@@ -44,6 +44,15 @@ def test_unknown_unnarrated_and_malformed_events_are_quiet():
     t = ModTranslator()
     assert t.event({"kind": "nope"}) == [] and t.event("not a dict") == []
     assert said(t.event({"kind": "tool", "name": "TodoWrite", "input": None})) == []
+    # text with no voice block says nothing, but still reports the work
+    assert t.event({"kind": "text", "text": "Reading the logs."}) == [{"kind": "text"}]
+    assert t.event({"kind": "notice", "text": "  "}) == []
+
+
+def test_a_notice_from_the_mod_is_spoken():
+    t = ModTranslator()
+    assert said(t.event({"kind": "notice", "text": "The voice instructions couldn't be added."})) == \
+        ["The voice instructions couldn't be added."]
     t.mark_compact_write()
     assert t.compact_pending
     assert said(t.event({"kind": "compacted"})) == ["Compacted."] and not t.compact_pending

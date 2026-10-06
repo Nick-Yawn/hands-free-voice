@@ -2,6 +2,8 @@
 // the events posted back to its socket out. No `$` here, so the tests run it
 // as is.
 
+import type { ContractState } from '../types'
+
 /** What the listener's ears and voice are doing (VoiceFront.state()). */
 export type ListenerState =
   | { type: 'state'; state: 'idle' | 'speaking' | 'paused' }
@@ -34,6 +36,7 @@ export type ListenerEvent =
   | { kind: 'text'; text: string }
   | { kind: 'complete'; answer: string; reason: string; pct?: number; elapsed_s: number }
   | { kind: 'compacted' }
+  | { kind: 'notice'; text: string }
 
 /** The listener command as typed in the options, split on whitespace. */
 export const splitArgv = (command: string): string[] => command.trim().split(/\s+/).filter(Boolean)
@@ -165,6 +168,58 @@ export const statusLine = (slot: string, commands: string): string =>
 export const midTurn = (text: string): string =>
   `The user said this by voice while you were working: ${text}`
 
+// The voice contract reaches Claude as a message in the conversation, one the
+// model reads and the user does not see, not as a system-prompt section: an
+// organization's policy plugin can keep the user's plugins out of the system
+// prompt, and a message also leaves the prompt cache alone when voice toggles.
+// A message can be compacted away or drift out of mind, so the mod puts it
+// back after a compaction and once more when a turn ends without a block.
+
+/** Whether an answer has a voice block. */
+export const hasVoiceBlock = (text: string): boolean => text.includes('⟦voice⟧')
+
+/** What moves the contract: voice came on (the listener's hello, or a turn
+ *  starting while it is on), went off, was compacted away, or a turn that
+ *  should have had a voice block ended without one. */
+export type ContractEvent = 'on' | 'off' | 'lost' | 'missed'
+
+/** The message that puts the contract in force. */
+export const contractRow = (contract: string): string =>
+  'Hands-free voice is on. Follow these instructions in every response from now on, ' +
+  `until a later message says voice is off.\n\n${contract}`
+
+/** The message that puts it aside when voice stops. */
+export const VOICE_OFF =
+  'Hands-free voice is off: stop ending responses with a ⟦voice⟧ block until a later message says it is back on.'
+
+/** The message that brings it back when voice restarts and the contract is still in the conversation. */
+export const VOICE_BACK_ON =
+  'Hands-free voice is back on: follow its instructions from earlier in this conversation again, ' +
+  'ending every response with exactly one ⟦voice⟧ block.'
+
+/** What the listener says when the conversation refuses the contract. */
+export const CONTRACT_REFUSED =
+  "The voice instructions couldn't be added to this conversation, so answers won't have spoken summaries."
+
+/** Where the contract stands after an event, and the message to append for it, if any. */
+export const contractStep = (
+  state: ContractState,
+  event: ContractEvent,
+  contract: string,
+): { state: ContractState; row?: string } => {
+  switch (event) {
+    case 'on':
+      if (state === 'active') return { state }
+      return { state: 'active', row: state === 'paused' ? VOICE_BACK_ON : contractRow(contract) }
+    case 'off':
+      return state === 'active' ? { state: 'paused', row: VOICE_OFF } : { state }
+    case 'lost':
+      return { state: 'absent' }
+    case 'missed':
+      return { state: 'active', row: contractRow(contract) }
+  }
+}
+
 /** The prompt that starts a turn when words delivered into the last one were never read. */
 export const UNREAD_NUDGE =
   'The user spoke while you were finishing your last response; their words are just above. Answer them.'
@@ -214,7 +269,7 @@ export class Confirmation {
 export const refuseFiling = (command: string, confirmation: Confirmation): string | undefined =>
   filesFeedback(command) && !confirmation.spend() ? UNCONFIRMED : undefined
 
-/** The system prompt's rule for "operator feedback … over": an ordinary heard
+/** The contract's rule for "operator feedback … over": an ordinary heard
  *  turn whose first word is "feedback", read back, then filed by Claude as a
  *  GitHub issue once the user confirms it. A message can begin with
  *  "feedback" by accident, and the issue is public. */

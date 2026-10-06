@@ -79,12 +79,17 @@ class ModTranslator:
                 if block and block not in self._streamed:
                     self._streamed.add(block)
                     out.append({"kind": "progress", "text": block, "say": [_say(block)]})
-            return out
+            # text with no new block is silent, but still says Claude is working
+            return out or [{"kind": "text"}]
         if kind == "complete":
             return self._complete(ev)
         if kind == "compacted":
             self.compact_pending = False
             return [{"kind": "say", "text": COMPACTED, "say": [_say(COMPACTED, role=STATUS)]}]
+        if kind == "notice":
+            # the mod's own word on what is wrong ("the voice instructions couldn't ...")
+            text = str(ev.get("text") or "").strip()
+            return [{"kind": "say", "text": text, "say": [_say(text, role=STATUS)]}] if text else []
         return []
 
     def _complete(self, ev: dict) -> list[dict]:

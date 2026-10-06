@@ -15,8 +15,10 @@ cue at the same level.
   resume       the same two notes rising, E5 to G5: playback goes on
                (stop and resume share their notes and differ by
                direction, so the ear tells them apart at once)
-  still_here   a double tap on one note, G4 twice: Claude is still
-               working (level, so it never reads as an ending)
+  still_here   a held low boop, a pure G4 for half a second, after a
+               quiet stretch while Claude works: a number-station beep
+               rather than a hit, and level, so it never reads as an
+               ending
   connected    a triple rising triad: mic and link are up
   closing      the same triad falling: the mirror of connected, played
                to completion before the process exits
@@ -46,6 +48,23 @@ def _note(freq: float, dur_s: float, sample_rate: int = SAMPLE_RATE,
     return out
 
 
+def _tone(freq: float, dur_s: float, sample_rate: int = SAMPLE_RATE,
+          attack_s: float = 0.02, release_s: float = 0.15, amp: int = 7100) -> array:
+    """A held pure tone with soft raised-cosine edges; `amp` is the struck
+    notes' measured peak, so it plays at their level."""
+    n = max(1, int(sample_rate * dur_s))
+    a, r = max(1, int(sample_rate * attack_s)), max(1, int(sample_rate * release_s))
+    out = array("h")
+    for i in range(n):
+        g = 1.0
+        if i < a:
+            g = 0.5 - 0.5 * math.cos(math.pi * i / a)
+        if i > n - r:
+            g *= 0.5 - 0.5 * math.cos(math.pi * (n - i) / r)
+        out.append(int(amp * g * math.sin(2 * math.pi * freq * i / sample_rate)))
+    return out
+
+
 def _gap(dur_s: float, sample_rate: int = SAMPLE_RATE) -> array:
     return array("h", [0] * int(sample_rate * dur_s))
 
@@ -69,8 +88,7 @@ def get_set(sample_rate: int = SAMPLE_RATE) -> dict[str, bytes]:
                        _note(659.25, 0.09, sample_rate)),                        # G5 -> E5
         "resume": _bytes(_note(659.25, 0.07, sample_rate), _gap(0.02, sample_rate),
                          _note(783.99, 0.09, sample_rate)),                      # E5 -> G5
-        "still_here": _bytes(_note(392.00, 0.09, sample_rate), _gap(0.07, sample_rate),
-                             _note(392.00, 0.09, sample_rate)),               # G4 G4
+        "still_here": _bytes(_tone(392.00, 0.50, sample_rate)),                # G4, held
         "connected": _bytes(_note(523.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(659.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(783.99, 0.18, sample_rate)),                   # C5 E5 G5

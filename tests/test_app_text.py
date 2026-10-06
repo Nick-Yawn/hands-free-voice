@@ -161,6 +161,29 @@ def test_still_here_fires_only_while_busy_and_quiet(tmp_path):
     asyncio.run(scenario())
 
 
+def test_any_sign_of_work_holds_off_still_here(tmp_path):
+    answers = {"slow": [assistant_tool("Bash", {"description": "sleep"})]}
+
+    async def scenario():
+        host, seat, claude, voice, out, pin = make_host(tmp_path, answers)
+        ticks = []
+        host.on_still_here = lambda: ticks.append(1)
+        host.start()
+        host.enqueue_turn("slow")
+        await until(lambda: seat.busy)
+        ticker = asyncio.ensure_future(host.still_here_ticker(0.05, interval_s=0.01))
+        # unnarrated tools and block-less text arrive faster than the quiet window
+        for kind in ("tool", "text") * 10:
+            host.on_seat_event({"kind": kind})
+            await asyncio.sleep(0.02)
+        assert ticks == []
+        await until(lambda: ticks)  # then quiet: the beep comes
+        ticker.cancel()
+        await host.shutdown()
+
+    asyncio.run(scenario())
+
+
 def test_parse_text_command():
     assert parse_text_command("hello there") is None
     assert parse_text_command("quit") == ("quit", None)

@@ -59,8 +59,8 @@ turn on "Listen at session start" in `/config`.
 | "operator feedback ... over" | drafts an issue on this repo from your words and reads it back (see below) | the draft, read back |
 | "operator confirm" | files the draft just read back; say anything else and it is dropped | the tick, then Claude's answer |
 
-While Claude works, a level double tap every 15 seconds says it is
-still going. Every command is acknowledged by ear the moment it is
+When Claude has worked for 30 seconds without saying or showing
+anything, a low beep says it is still going. Every command is acknowledged by ear the moment it is
 heard. Stop and resume share their two notes and differ by direction;
 the quit triad is the startup chime played backwards.
 
@@ -151,6 +151,9 @@ earcons = 1.0          # the tones
 [gate]
 hangover_s = 10.0      # quiet after your last words before the speech link closes
 
+[seat]
+still_here_s = 30      # quiet while Claude works before the still-working beep
+
 [respell]
 # how the voice should say jargon it mangles ("README" is "read me" already)
 # dev = "devv"
@@ -194,9 +197,13 @@ nothing and holds no connection.
 
 The mod (TypeScript, in `plugin/`) runs inside Claude Code. It starts
 the listener (`hands-free-voice listen`, the Python package in
-`hands_free_voice/`) and adds the spoken-block contract to Claude's
-system prompt: every response ends with a short voice block, which the
-listener reads aloud. The listener owns the mic, a local voice detector
+`hands_free_voice/`) and puts the spoken-block contract into the
+conversation, as a message Claude reads and you don't see: every
+response ends with a short voice block, which the listener reads aloud.
+The mod puts it back after a compaction, or when a turn ends without a
+block, and adds a short note when voice goes off or comes back. (A
+system-prompt section would be simpler, but an organization's policy
+plugin can keep the user's plugins out of the system prompt.) The listener owns the mic, a local voice detector
 (WebRTC's) that gates the speech-to-text session, the turn machine that
 finds "operator … over", and playback. It reports heard turns and its
 state as JSON lines on stdout; the mod posts each turn's start, tool

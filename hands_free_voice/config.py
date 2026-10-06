@@ -61,7 +61,7 @@ DEFAULTS: dict = {
         "claude": "claude",       # the binary to drive
         "claude_args": [],        # extra flags, e.g. ["--permission-mode", "acceptEdits"]
         "idle_close_min": 30,
-        "still_here_s": 15,
+        "still_here_s": 30,
         "closer_fallback": "Done.",  # spoken when a query reports no usage
     },
     "audio": {
