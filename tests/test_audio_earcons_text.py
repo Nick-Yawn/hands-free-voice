@@ -39,14 +39,14 @@ def test_every_cue_plays_at_the_same_level():
 
 
 def test_still_working_is_the_oddity_first_note():
-    # one held note near B flat 4, keyed on sharply: at full level within
-    # a few milliseconds, still there halfway through, two thirds of a second
+    # one held note near B flat 4, keyed on quickly: at full level within
+    # 20 ms, still there halfway through, two thirds of a second
     a = array("h")
     a.frombytes(earcons.get_set()["still_here"])
     rate = earcons.SAMPLE_RATE
     assert abs(len(a) - 0.65 * rate) < 0.01 * rate
     peak = max(abs(x) for x in a)
-    assert max(abs(x) for x in a[:int(0.008 * rate)]) > 0.8 * peak
+    assert max(abs(x) for x in a[int(0.015 * rate):int(0.02 * rate)]) > 0.9 * peak
     middle = a[len(a) // 2 - 100:len(a) // 2 + 100]
     assert max(abs(x) for x in middle) > 0.9 * peak
     crossings = sum((p < 0) != (q < 0) for p, q in zip(a, a[1:]))

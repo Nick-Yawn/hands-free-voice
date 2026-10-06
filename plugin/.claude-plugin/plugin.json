@@ -1,7 +1,7 @@
 {
   "name": "hands-free-voice",
   "displayName": "Hands-free voice",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Talk to Claude Code hands-free: say \"operator\", talk, say \"over\"; it answers aloud and reads the context percent as the closer.",
   "author": {
     "name": "Nicholas Yuan",

@@ -17,7 +17,7 @@ cue at the same level.
                direction, so the ear tells them apart at once)
   still_here   one held note after a quiet stretch while Claude works:
                the first note of the Conet Project's Three Note Oddity
-               (about 467 Hz, near B flat 4), keyed on sharply, with its
+               (about 467 Hz, near B flat 4), keyed on in 15 ms, with a
                faint second harmonic; level, so it never reads as an
                ending. It plays well below the other cues (the working
                cue's tone_volume)
@@ -93,11 +93,12 @@ def get_set(sample_rate: int = SAMPLE_RATE) -> dict[str, bytes]:
                        _note(659.25, 0.09, sample_rate)),                        # G5 -> E5
         "resume": _bytes(_note(659.25, 0.07, sample_rate), _gap(0.02, sample_rate),
                          _note(783.99, 0.09, sample_rate)),                      # E5 -> G5
-        # measured from the recording: 467 Hz, 0.65 s, a ~5 ms onset, the second
-        # harmonic 16 dB down; at 7000 it is as loud as the other cues (the
-        # working cue's tone_volume brings it down at play)
-        "still_here": _bytes(_tone(467.0, 0.65, sample_rate, attack_s=0.004, release_s=0.04,
-                                   amp=7000, harmonics=((2, 0.16), (3, 0.025)))),
+        # the recording's note and length (467 Hz, 0.65 s), softened by ear for
+        # laptop speakers: a 15 ms onset, the second harmonic 23 dB down and
+        # no third; at 7000 it is as loud as the other cues (the working cue's
+        # tone_volume brings it down at play)
+        "still_here": _bytes(_tone(467.0, 0.65, sample_rate, attack_s=0.015, release_s=0.04,
+                                   amp=7000, harmonics=((2, 0.072),))),
         "connected": _bytes(_note(523.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(659.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(783.99, 0.18, sample_rate)),                   # C5 E5 G5

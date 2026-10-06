@@ -31,7 +31,7 @@ word instead, turn it off, or set its interval and the tone's volume.
 
 ## What it runs and sends
 
-The plugin starts one local process, `uvx hands-free-voice==0.1.4
+The plugin starts one local process, `uvx hands-free-voice==0.1.5
 listen`, the [hands-free-voice](https://pypi.org/project/hands-free-voice/)
 package from PyPI, pinned to this plugin's version. It owns the
 microphone and the speaker and talks to the plugin over a private Unix

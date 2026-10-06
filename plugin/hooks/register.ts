@@ -38,7 +38,7 @@ const BASE = 'http://hands-free'
 // The listener this version of the mod speaks to, pinned. To run a checkout's
 // listener while developing, point this at its .venv/bin/hands-free-voice;
 // tests/test_release.py fails while it points anywhere else.
-const LISTENER = 'uvx hands-free-voice==0.1.4 listen'
+const LISTENER = 'uvx hands-free-voice==0.1.5 listen'
 // Whether voice should be on. Module variables start over on a hot reload, which
 // also stops the listener; this survives it, so the new copy can start it again.
 const LISTENING = { plugin: 'hands-free-voice', key: 'listening' } as const

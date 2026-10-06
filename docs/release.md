@@ -5,12 +5,14 @@ Claude plugin directory takes a submission. Checked 2026-10-06.
 
 ## Where it stands
 
-Released: 0.1.4 is on PyPI and main, so anyone can install it with
+Released: 0.1.5 is on PyPI and main, so anyone can install it with
 `/plugin marketplace add Nick-Yawn/hands-free-voice`. A fresh install (a
 Claude Code profile that had never seen it, keys entered at install,
 the listener downloaded from PyPI) worked on 2026-10-04.
 
-Done: the working cue is a choice in `/config`, along with its
+Done: the working tone is softened by ear for laptop speakers: a 15 ms
+onset, its second harmonic about 23 dB down, and no third (0.1.5). Also
+done: the working cue is a choice in `/config`, along with its
 interval and the tone's volume. The choices are a quiet tone (the first
 note of the Conet Project's Three Note Oddity, at 10% of the other tones
 every 20 seconds), the spinner's word spoken, or nothing. The status line
