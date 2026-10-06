@@ -259,6 +259,16 @@ def main(argv: list[str]) -> int:
                     help="config file (default: ~/.config/hands-free-voice/config.toml)")
     ap.add_argument("--voice", default=None, metavar="VOICE_ID",
                     help="the TTS voice id (overrides [tts].voice in the config)")
+    # the mod passes its options for the working cue (its /config rows) as these
+    ap.add_argument("--working-cue", choices=("tone", "word", "off"), default=None,
+                    help="what plays while Claude works without a word: a quiet tone, the"
+                         " spinner's word spoken, or nothing (overrides [working].cue)")
+    ap.add_argument("--working-interval", type=float, default=None, metavar="SECONDS",
+                    help="quiet before the working cue, and between cues"
+                         " (overrides [working].interval_s)")
+    ap.add_argument("--working-tone-volume", type=float, default=None, metavar="SHARE",
+                    help="the working tone's level as a share of the other tones', 0.1 for"
+                         " 10 percent (overrides [working].tone_volume)")
     args = ap.parse_args(argv)
     write = JsonLines()
 
@@ -271,6 +281,16 @@ def main(argv: list[str]) -> int:
                       user_path=args.config)
     if args.voice:
         cfg["tts"]["voice"] = args.voice
+    for flag, key in ((args.working_cue, "cue"), (args.working_interval, "interval_s"),
+                      (args.working_tone_volume, "tone_volume")):
+        if flag is not None:
+            cfg["working"][key] = flag
+    if cfg["working"]["cue"] not in ("tone", "word", "off"):
+        return fail(f"the working cue is tone, word or off, not {cfg['working']['cue']!r}")
+    if not float(cfg["working"]["interval_s"]) > 0:
+        return fail("the working cue's interval must be more than 0 seconds")
+    if not float(cfg["working"]["tone_volume"]) >= 0:
+        return fail("the working tone's volume can't be below 0")
     try:
         environ = with_file_keys(required_key_envs(cfg))
         missing = missing_keys(cfg, environ)

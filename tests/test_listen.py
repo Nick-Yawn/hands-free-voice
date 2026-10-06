@@ -56,7 +56,7 @@ class Lines:
 
 def test_a_heard_turn_goes_out_and_the_answer_comes_back_as_speech(sock_dir):
     cfg = deep_merge(DEFAULTS, {"turns": {"closer_settle_s": 0.03},
-                                "seat": {"still_here_s": 60}, "tts": {"voice": ""},
+                                "working": {"interval_s": 60}, "tts": {"voice": ""},
                                 "gate": {"hangover_s": 60, "empty_hangover_s": 60,
                                          "deaf_s": 0}})
 
@@ -159,7 +159,7 @@ def test_a_listener_waits_for_the_one_it_replaces_to_let_go(tmp_path):
 
 
 def test_a_signal_ends_the_listener_and_says_which(sock_dir):
-    cfg = deep_merge(DEFAULTS, {"seat": {"still_here_s": 60}, "tts": {"voice": ""},
+    cfg = deep_merge(DEFAULTS, {"working": {"interval_s": 60}, "tts": {"voice": ""},
                                 "gate": {"deaf_s": 0}})
 
     async def scenario():
@@ -174,3 +174,13 @@ def test_a_signal_ends_the_listener_and_says_which(sock_dir):
         assert await asyncio.wait_for(run, 5) == signal.SIGHUP
 
     asyncio.run(scenario())
+
+
+def test_a_working_cue_setting_out_of_range_is_refused(tmp_path, capsys):
+    from hands_free_voice.listen import main
+    base = ["--project", str(tmp_path), "--config", str(tmp_path / "none.toml")]
+    for flags, words in ((["--working-interval", "0"], "interval"),
+                         (["--working-tone-volume", "-1"], "volume")):
+        assert main(base + flags) == 2
+        line = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+        assert line["type"] == "error" and words in line["text"], line

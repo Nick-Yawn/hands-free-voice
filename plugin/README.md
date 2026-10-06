@@ -25,12 +25,13 @@ Start with "operator", then one of: your request ending in "over",
 or "feedback … over", which Claude reads back as a draft issue and files
 only when you then say "operator confirm". The status line lists them
 all but confirm. Tones acknowledge each command the moment it is heard,
-and a low beep says Claude is still working when 30 seconds pass
-without a word from it.
+and a quiet tone says Claude is still working when 20 seconds pass
+without a word from it. In `/config` you can have it say the spinner's
+word instead, turn it off, or set its interval and the tone's volume.
 
 ## What it runs and sends
 
-The plugin starts one local process, `uvx hands-free-voice==0.1.3
+The plugin starts one local process, `uvx hands-free-voice==0.1.4
 listen`, the [hands-free-voice](https://pypi.org/project/hands-free-voice/)
 package from PyPI, pinned to this plugin's version. It owns the
 microphone and the speaker and talks to the plugin over a private Unix

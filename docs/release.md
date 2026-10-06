@@ -5,17 +5,20 @@ Claude plugin directory takes a submission. Checked 2026-10-06.
 
 ## Where it stands
 
-Released: 0.1.3 is on PyPI and main, so anyone can install it with
+Released: 0.1.4 is on PyPI and main, so anyone can install it with
 `/plugin marketplace add Nick-Yawn/hands-free-voice`. A fresh install (a
 Claude Code profile that had never seen it, keys entered at install,
 the listener downloaded from PyPI) worked on 2026-10-04.
 
-Done: the voice contract goes into the conversation as a hidden message
+Done: the working cue is a choice in `/config`, along with its
+interval and the tone's volume. The choices are a quiet tone (the first
+note of the Conet Project's Three Note Oddity, at 10% of the other tones
+every 20 seconds), the spinner's word spoken, or nothing. The status line
+ends with "/config for settings" (0.1.4). Also done: the voice contract goes into the conversation as a hidden message
 rather than the system prompt, which an organization's policy plugin can
 keep a user's plugins out of (0.1.3; found on a work laptop, where
-every answer lacked its voice block); the still-working cue is a held
-low beep after 30 seconds in which Claude showed nothing, where any
-tool call or text resets the wait (0.1.3; it was a marimba double tap
+every answer lacked its voice block); the still-working cue waits for
+quiet, where any tool call or text resets the wait (0.1.3; it was a marimba double tap
 every 15 seconds that unnarrated work never reset); feedback read back
 as a draft and filed only after a spoken
 "confirm", which the mod enforces by refusing the filing without one

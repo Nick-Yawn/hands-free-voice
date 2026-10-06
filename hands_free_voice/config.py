@@ -57,11 +57,15 @@ DEFAULTS: dict = {
         "narration": 1.0,
         "earcons": 1.0,
     },
+    "working": {                  # the cue while Claude works without a word
+        "cue": "tone",            # "tone", "word" (the spinner's word, spoken) or "off"
+        "interval_s": 20,         # quiet before the cue, and between cues
+        "tone_volume": 0.10,      # the tone's level, as a share of the other tones'
+    },
     "seat": {
         "claude": "claude",       # the binary to drive
         "claude_args": [],        # extra flags, e.g. ["--permission-mode", "acceptEdits"]
         "idle_close_min": 30,
-        "still_here_s": 30,
         "closer_fallback": "Done.",  # spoken when a query reports no usage
     },
     "audio": {

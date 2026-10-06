@@ -58,6 +58,14 @@ def test_a_notice_from_the_mod_is_spoken():
     assert said(t.event({"kind": "compacted"})) == ["Compacted."] and not t.compact_pending
 
 
+def test_the_spinner_word_is_kept_and_is_no_sign_of_work():
+    t = ModTranslator()
+    assert t.spinner_word is None
+    assert t.event({"kind": "spinner", "word": "Sautéing"}) == []
+    assert t.event({"kind": "spinner", "word": "  "}) == []
+    assert t.spinner_word == "Sautéing"
+
+
 def test_a_read_delivery_clears_the_unconsumed_count():
     t = ModTranslator()
     t.submitted()

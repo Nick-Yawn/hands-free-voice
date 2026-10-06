@@ -17,6 +17,9 @@ Events from the mod, each a dict with a `kind`:
   complete  answer, reason,   the turn ended ("answer", "aborted",
             pct, elapsed_s    "refusal" or "error"); pct the context fill
   compacted                   a compact the mod ran has finished
+  notice    text              the mod's own word on what is wrong, spoken
+  spinner   word              the turn's spinner word ("Sautéing"), which a
+                              working cue of "word" says
 """
 
 from hands_free_voice.narrate import narrate_tool
@@ -38,6 +41,7 @@ class ModTranslator:
         self.unconsumed = 0
         self.compact_pending = False
         self.last_pct: int | None = None
+        self.spinner_word: str | None = None
         self._streamed: set[str] = set()
 
     @property
@@ -90,6 +94,12 @@ class ModTranslator:
             # the mod's own word on what is wrong ("the voice instructions couldn't ...")
             text = str(ev.get("text") or "").strip()
             return [{"kind": "say", "text": text, "say": [_say(text, role=STATUS)]}] if text else []
+        if kind == "spinner":
+            # kept for the working cue; not a sign of work, so no event
+            word = str(ev.get("word") or "").strip()
+            if word:
+                self.spinner_word = word
+            return []
         return []
 
     def _complete(self, ev: dict) -> list[dict]:
@@ -158,6 +168,10 @@ class ModSeat:
     @property
     def last_pct(self) -> int | None:
         return self.state.last_pct
+
+    @property
+    def spinner_word(self) -> str | None:
+        return self.state.spinner_word
 
     async def submit(self, text: str) -> None:
         self._write({"type": "turn", "text": text})

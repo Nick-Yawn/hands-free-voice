@@ -6,7 +6,7 @@ import asyncio
 
 from hands_free_voice import earcons
 from hands_free_voice.app import Host
-from hands_free_voice.audio import Playback
+from hands_free_voice.audio import Playback, scale_pcm
 from hands_free_voice.config import DEFAULTS, deep_merge
 from hands_free_voice.providers import Error, Final, Partial, SpeechStarted
 from hands_free_voice.providers.fake import FakeSTT, FakeTTS, FakeVAD
@@ -90,7 +90,7 @@ def build(tmp_path, answers, overlay=None, tts=None, states=None):
     # shipped voice id.
     cfg = deep_merge(DEFAULTS, {"turns": {"closer_settle_s": 0.03},
                                 "volumes": {"earcons": 1.0},
-                                "seat": {"still_here_s": 60},
+                                "working": {"interval_s": 60},
                                 "tts": {"voice": ""},
                                 "gate": {"hangover_s": 60, "empty_hangover_s": 60,
                                          "deaf_s": 0}, **(overlay or {})})
@@ -445,3 +445,34 @@ def test_every_command_plays_its_cue_and_quit_ends_on_the_closing_tone(tmp_path)
         assert stream.writes[-1] == CUES["closing"]
 
     asyncio.run(scenario())
+
+
+def test_the_working_cue_is_a_quiet_tone_a_spoken_word_or_nothing(tmp_path):
+    def ticking():
+        return any(getattr(t.get_coro(), "__name__", "") == "still_here_ticker"
+                   for t in asyncio.all_tasks())
+
+    async def scenario(cue):
+        home = tmp_path / cue
+        home.mkdir()
+        host, seat, claude, stt, tts, stream, mic, out, run = build(
+            home, {}, overlay={"working": {"cue": cue, "interval_s": 60, "tone_volume": 0.15}})
+        await until(lambda: "connected" in cue_names(stream))
+        assert ticking() == (cue != "off")
+        if cue == "tone":
+            # the oddity's note, well below the other cues
+            host.on_still_here()
+            await until(lambda: scale_pcm(CUES["still_here"], 0.15) in stream.writes)
+        if cue == "word":
+            # no spinner word yet (no mod here): a plain one
+            host.on_still_here()
+            await until(lambda: ("Working.", None) in tts.spoken)
+            seat.spinner_word = "Sautéing"
+            host.on_still_here()
+            await until(lambda: ("Sautéing.", None) in tts.spoken)
+            assert CUES["still_here"] not in stream.writes
+        host.quitting.set()
+        await run
+
+    for cue in ("tone", "word", "off"):
+        asyncio.run(scenario(cue))

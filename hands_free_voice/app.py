@@ -245,7 +245,7 @@ class Host:
         self.say_local(line)
         return line
 
-    async def still_here_ticker(self, quiet_s: float, interval_s: float = 2.0) -> None:
+    async def still_here_ticker(self, quiet_s: float, interval_s: float = 1.0) -> None:
         """A soft still-here cue after `quiet_s` in which Claude, though
         working, showed nothing and nothing was spoken. Every tool call and
         every text resets the clock, and speech holds it until it ends."""
@@ -372,7 +372,7 @@ async def run_text(host: Host, lines: asyncio.Queue | None = None,
     host._out(TEXT_HELP)
     host.start()
     ticker = asyncio.ensure_future(host.still_here_ticker(
-        float(host.cfg["seat"]["still_here_s"])))
+        float(host.cfg["working"]["interval_s"])))
     host.on_still_here = host.on_still_here or (lambda: host._out("  ⋯ (still working)"))
     quit_wait = asyncio.ensure_future(host.quitting.wait())
     try:

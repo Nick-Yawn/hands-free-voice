@@ -21,6 +21,7 @@ import {
   splitArgv,
   statusLine,
   usage,
+  workingArgs,
 } from '../hooks/link'
 
 test('stdout pieces become whole lines across and within pieces', async () => {
@@ -101,6 +102,7 @@ test('the status line is the same length whatever the slot says', async () => {
     slot => statusLine(slot, commands).length,
   )
   expect(new Set(lengths).size).toBe(1)
+  expect(statusLine('waiting', commands).endsWith('· /config for settings')).toBe(true)
 })
 
 test('the feedback rule reads the draft back and files it only on the confirm', async () => {
@@ -175,4 +177,11 @@ test('a missing block puts the whole contract in again', async () => {
   expect(contractStep('active', 'missed', 'C')).toEqual({ state: 'active', row: contractRow('C') })
   expect(hasVoiceBlock('done.\n⟦voice⟧All set.⟦/voice⟧')).toBe(true)
   expect(hasVoiceBlock('done, no block')).toBe(false)
+})
+
+test('the working cue options reach the listener as flags, the volume as a share', async () => {
+  expect(workingArgs({ working_cue: 'word', working_cue_interval: 20, working_tone_volume: 10 })).toEqual([
+    '--working-cue', 'word', '--working-interval', '20', '--working-tone-volume', '0.1',
+  ])
+  expect(workingArgs({ autostart: true })).toEqual([])
 })

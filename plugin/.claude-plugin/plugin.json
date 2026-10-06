@@ -1,7 +1,7 @@
 {
   "name": "hands-free-voice",
   "displayName": "Hands-free voice",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Talk to Claude Code hands-free: say \"operator\", talk, say \"over\"; it answers aloud and reads the context percent as the closer.",
   "author": {
     "name": "Nicholas Yuan",
@@ -35,6 +35,25 @@
       "title": "Listen at session start",
       "description": "Start listening when an interactive session starts, without /hands-free.",
       "default": false
+    },
+    "working_cue": {
+      "type": "string",
+      "title": "Working cue",
+      "description": "What plays while Claude works without a word: a quiet tone, the spinner's word spoken aloud, or nothing.",
+      "options": ["tone", "word", "off"],
+      "default": "tone"
+    },
+    "working_cue_interval": {
+      "type": "number",
+      "title": "Working cue interval",
+      "description": "Seconds Claude works without a word before the cue, and between cues.",
+      "default": 20
+    },
+    "working_tone_volume": {
+      "type": "number",
+      "title": "Working tone volume",
+      "description": "The tone's loudness, as a percent of the other tones'.",
+      "default": 10
     }
   }
 }

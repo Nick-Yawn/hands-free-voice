@@ -22,6 +22,7 @@ import {
   splitArgv,
   statusLine,
   usage,
+  workingArgs,
 } from './link'
 
 // The mod is the session half of hands-free-voice. The listener (the Python
@@ -37,7 +38,7 @@ const BASE = 'http://hands-free'
 // The listener this version of the mod speaks to, pinned. To run a checkout's
 // listener while developing, point this at its .venv/bin/hands-free-voice;
 // tests/test_release.py fails while it points anywhere else.
-const LISTENER = 'uvx hands-free-voice==0.1.3 listen'
+const LISTENER = 'uvx hands-free-voice==0.1.4 listen'
 // Whether voice should be on. Module variables start over on a hot reload, which
 // also stops the listener; this survives it, so the new copy can start it again.
 const LISTENING = { plugin: 'hands-free-voice', key: 'listening' } as const
@@ -55,6 +56,7 @@ let unread = 0 // heard turns put into the running turn that no request has carr
 const confirmation = new Confirmation() // the spoken confirm a feedback filing needs
 let blockSeen = false // whether the running turn has written a voice block
 let followedSinceRow = false // whether a turn has written one since the contract was last put in
+let spinnerWord: string | undefined // the last spinner word posted to the running listener
 let posting: Promise<unknown> = Promise.resolve()
 let contracting: Promise<unknown> = Promise.resolve()
 
@@ -171,6 +173,7 @@ async function listen($: EngineInterface, argv: string[], cwd: string, env: Reco
   contract = undefined
   commands = undefined
   heard = { type: 'state', state: 'idle' }
+  spinnerWord = undefined
   confirmation.drop()
   paint($)
   const lines = new LineSplitter()
@@ -217,7 +220,7 @@ async function listen($: EngineInterface, argv: string[], cwd: string, env: Reco
 
 function start($: EngineInterface, cwd: string, options: PluginOptions) {
   void $.state.set(LISTENING, true)
-  const argv = [...splitArgv(LISTENER), '--project', cwd]
+  const argv = [...splitArgv(LISTENER), '--project', cwd, ...workingArgs(options)]
   const env: Record<string, string> = {}
   if (options.deepgram_api_key) env.DEEPGRAM_API_KEY = String(options.deepgram_api_key)
   if (options.cartesia_api_key) env.CARTESIA_API_KEY = String(options.cartesia_api_key)
@@ -296,6 +299,16 @@ export const register: Register = (on, options) => {
       post($, { kind: 'text', text: step.answer })
     }
     return step
+  })
+
+  on('ui.render', { component: 'Spinner' }, ($, e, next) => {
+    // A working cue of "word" says the spinner's word ("Sautéing"), picked
+    // once a turn; the listener keeps the latest.
+    if (options.working_cue === 'word' && socket && e.props.word && e.props.word !== spinnerWord) {
+      spinnerWord = e.props.word
+      post($, { kind: 'spinner', word: spinnerWord })
+    }
+    return next(e)
   })
 
   on('tool.call', ($, e, next) => {

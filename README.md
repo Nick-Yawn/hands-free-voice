@@ -59,8 +59,12 @@ turn on "Listen at session start" in `/config`.
 | "operator feedback ... over" | drafts an issue on this repo from your words and reads it back (see below) | the draft, read back |
 | "operator confirm" | files the draft just read back; say anything else and it is dropped | the tick, then Claude's answer |
 
-When Claude has worked for 30 seconds without saying or showing
-anything, a low beep says it is still going. Every command is acknowledged by ear the moment it is
+When Claude has worked for 20 seconds without saying or showing
+anything, a quiet tone says it is still going: the first note of the
+Three Note Oddity, from the Conet Project's numbers-station recordings.
+In `/config` you can have it say the spinner's word instead
+("Sautéing."), turn it off, or set its interval and the tone's volume.
+Every command is acknowledged by ear the moment it is
 heard. Stop and resume share their two notes and differ by direction;
 the quit triad is the startup chime played backwards.
 
@@ -151,8 +155,10 @@ earcons = 1.0          # the tones
 [gate]
 hangover_s = 10.0      # quiet after your last words before the speech link closes
 
-[seat]
-still_here_s = 30      # quiet while Claude works before the still-working beep
+[working]              # set in /config under the plugin; those settings win
+cue = "tone"           # while Claude works quietly: "tone", "word" (the spinner's) or "off"
+interval_s = 20        # quiet before the cue, and between cues
+tone_volume = 0.10     # the tone's level, as a share of the other tones'
 
 [respell]
 # how the voice should say jargon it mangles ("README" is "read me" already)

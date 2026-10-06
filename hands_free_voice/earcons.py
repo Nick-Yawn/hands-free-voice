@@ -15,10 +15,12 @@ cue at the same level.
   resume       the same two notes rising, E5 to G5: playback goes on
                (stop and resume share their notes and differ by
                direction, so the ear tells them apart at once)
-  still_here   a held low boop, a pure G4 for half a second, after a
-               quiet stretch while Claude works: a number-station beep
-               rather than a hit, and level, so it never reads as an
-               ending
+  still_here   one held note after a quiet stretch while Claude works:
+               the first note of the Conet Project's Three Note Oddity
+               (about 467 Hz, near B flat 4), keyed on sharply, with its
+               faint second harmonic; level, so it never reads as an
+               ending. It plays well below the other cues (the working
+               cue's tone_volume)
   connected    a triple rising triad: mic and link are up
   closing      the same triad falling: the mirror of connected, played
                to completion before the process exits
@@ -49,9 +51,10 @@ def _note(freq: float, dur_s: float, sample_rate: int = SAMPLE_RATE,
 
 
 def _tone(freq: float, dur_s: float, sample_rate: int = SAMPLE_RATE,
-          attack_s: float = 0.02, release_s: float = 0.15, amp: int = 7100) -> array:
-    """A held pure tone with soft raised-cosine edges; `amp` is the struck
-    notes' measured peak, so it plays at their level."""
+          attack_s: float = 0.02, release_s: float = 0.15, amp: int = 7100,
+          harmonics: tuple[tuple[int, float], ...] = ()) -> array:
+    """A held tone with raised-cosine edges, plus any (multiple, level)
+    harmonics; `amp` is the fundamental's peak."""
     n = max(1, int(sample_rate * dur_s))
     a, r = max(1, int(sample_rate * attack_s)), max(1, int(sample_rate * release_s))
     out = array("h")
@@ -61,7 +64,9 @@ def _tone(freq: float, dur_s: float, sample_rate: int = SAMPLE_RATE,
             g = 0.5 - 0.5 * math.cos(math.pi * i / a)
         if i > n - r:
             g *= 0.5 - 0.5 * math.cos(math.pi * (n - i) / r)
-        out.append(int(amp * g * math.sin(2 * math.pi * freq * i / sample_rate)))
+        ph = 2 * math.pi * freq * i / sample_rate
+        s = math.sin(ph) + sum(level * math.sin(k * ph) for k, level in harmonics)
+        out.append(int(amp * g * s))
     return out
 
 
@@ -88,7 +93,11 @@ def get_set(sample_rate: int = SAMPLE_RATE) -> dict[str, bytes]:
                        _note(659.25, 0.09, sample_rate)),                        # G5 -> E5
         "resume": _bytes(_note(659.25, 0.07, sample_rate), _gap(0.02, sample_rate),
                          _note(783.99, 0.09, sample_rate)),                      # E5 -> G5
-        "still_here": _bytes(_tone(392.00, 0.50, sample_rate)),                # G4, held
+        # measured from the recording: 467 Hz, 0.65 s, a ~5 ms onset, the second
+        # harmonic 16 dB down; at 7000 it is as loud as the other cues (the
+        # working cue's tone_volume brings it down at play)
+        "still_here": _bytes(_tone(467.0, 0.65, sample_rate, attack_s=0.004, release_s=0.04,
+                                   amp=7000, harmonics=((2, 0.16), (3, 0.025)))),
         "connected": _bytes(_note(523.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(659.25, 0.10, sample_rate), _gap(0.02, sample_rate),
                             _note(783.99, 0.18, sample_rate)),                   # C5 E5 G5

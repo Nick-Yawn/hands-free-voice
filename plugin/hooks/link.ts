@@ -37,6 +37,21 @@ export type ListenerEvent =
   | { kind: 'complete'; answer: string; reason: string; pct?: number; elapsed_s: number }
   | { kind: 'compacted' }
   | { kind: 'notice'; text: string }
+  | { kind: 'spinner'; word: string }
+
+/**
+ * The working cue's options (its `/config` rows) as the listener's flags. The
+ * volume is a percent there and a share for the listener; an option left
+ * unset leaves the listener's own setting.
+ */
+export function workingArgs(options: Record<string, unknown>): string[] {
+  const args: string[] = []
+  const { working_cue: cue, working_cue_interval: interval, working_tone_volume: volume } = options
+  if (typeof cue === 'string') args.push('--working-cue', cue)
+  if (typeof interval === 'number') args.push('--working-interval', String(interval))
+  if (typeof volume === 'number') args.push('--working-tone-volume', String(volume / 100))
+  return args
+}
 
 /** The listener command as typed in the options, split on whitespace. */
 export const splitArgv = (command: string): string[] => command.trim().split(/\s+/).filter(Boolean)
@@ -160,9 +175,12 @@ export const slotFor = (state: ListenerState, working: boolean): string => {
   }
 }
 
-/** The whole line: the slot padded to its width, then the usage. */
+/** Where the plugin's settings are, said last on the status line. */
+export const SETTINGS_HINT = '/config for settings'
+
+/** The whole line: the slot padded to its width, the usage, then where the settings are. */
 export const statusLine = (slot: string, commands: string): string =>
-  `${slot.slice(0, SLOT).padEnd(SLOT)}  ${commands}`
+  `${slot.slice(0, SLOT).padEnd(SLOT)}  ${commands}  · ${SETTINGS_HINT}`
 
 /** How a turn heard while Claude works is put into the running turn. */
 export const midTurn = (text: string): string =>

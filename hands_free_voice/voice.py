@@ -24,6 +24,7 @@ from hands_free_voice.providers import Final, Partial, SpeechStarted, TurnEnd
 from hands_free_voice.scrub import Scrubber
 from hands_free_voice.spoken_log import SpokenLog
 from hands_free_voice.text import Respeller
+from hands_free_voice.translator import NARRATION, NARRATION_ROLE
 from hands_free_voice.turns import TurnMachine
 from hands_free_voice.vad import make_vad
 
@@ -83,6 +84,10 @@ class VoiceFront:
             idle_turn_s=float(turns["idle_turn_s"]), clock=clock)
         self.earcons = get_set(playback.rate)
         self.earcon_gain = float(cfg["volumes"].get("earcons", 1.0))
+        working = cfg["working"]
+        self.working_cue = working["cue"]
+        self.working_interval_s = float(working["interval_s"])
+        self.tone_gain = self.earcon_gain * float(working["tone_volume"])
         self.link_up = False
         self._settle: asyncio.Task | None = None
         self.pass_start = clock()
@@ -102,7 +107,7 @@ class VoiceFront:
             on_deaf=lambda: self.request_rebuild("voice but no words, twice"),
             out=self._out, log=host.log.write, clock=clock)
         host.status_extra = self.status_extra
-        host.on_still_here = lambda: self.cue("still_here")
+        host.on_still_here = self.still_working
         self.on_state = on_state  # (state) whenever state() changes
         self._shown: dict | None = None
         self._mic_trouble: str | None = None
@@ -119,6 +124,15 @@ class VoiceFront:
 
     def cue(self, name: str) -> None:
         self.playback.play(self.earcons[name], self.earcon_gain)
+
+    def still_working(self) -> None:
+        """The working cue: the spinner's word said aloud ("Sautéing"), the
+        same word all turn, or the quiet tone."""
+        if self.working_cue == "word":
+            word = getattr(self.host.seat, "spinner_word", None) or "Working"
+            self.host.spoken.append(f"{word}.", NARRATION, kind="working", role=NARRATION_ROLE)
+        else:
+            self.playback.play(self.earcons["still_here"], self.tone_gain)
 
     def _link(self, up: bool) -> None:
         self._link_trouble = None if up else "speech link down"
@@ -393,8 +407,9 @@ class VoiceFront:
             asyncio.ensure_future(self.ears()),
             asyncio.ensure_future(self.watchdog()),
             asyncio.ensure_future(self.abandon_ticker()),
-            asyncio.ensure_future(host.still_here_ticker(float(host.cfg["seat"]["still_here_s"]))),
         ]
+        if self.working_cue != "off":
+            self._tasks.append(asyncio.ensure_future(host.still_here_ticker(self.working_interval_s)))
         ears = self._tasks[0]
 
         def ears_dead(task):
